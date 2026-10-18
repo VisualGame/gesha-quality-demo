@@ -189,7 +189,7 @@ function initializeRenderer(){
  fillLight.position.set(3.8,2.2,1.5);fillLight.lookAt(0,1,-.15);scene.add(fillLight);
  rightBounce=new THREE.RectAreaLight('#f6e6cf',0,5.0,4.0);
  rightBounce.position.set(0,.035,1.5);rightBounce.lookAt(0,2,0);scene.add(rightBounce);
- const floor=new THREE.Mesh(new THREE.PlaneGeometry(24,24),new THREE.MeshPhysicalMaterial({color:'#efe2d2',metalness:0,roughness:.74,envMapIntensity:.92,clearcoat:.04,clearcoatRoughness:.88}));
+ const floor=new THREE.Mesh(new THREE.PlaneGeometry(24,24),new THREE.MeshPhysicalMaterial({color:'#efe2d2',metalness:0,roughness:.45,envMapIntensity:1.05,clearcoat:.5,clearcoatRoughness:.18}));
  floor.name='Parquet floor';floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;floor.position.y=0;scene.add(floor);
  const wall=new THREE.Mesh(new THREE.PlaneGeometry(24,10),new THREE.MeshPhysicalMaterial({color:'#e3d7c7',metalness:0,roughness:.92,envMapIntensity:.26,clearcoat:.02,clearcoatRoughness:.92}));
  wall.name='Wallpaper wall';wall.position.set(0,5,-.56);wall.receiveShadow=true;scene.add(wall);
@@ -343,7 +343,7 @@ async function loadMaterials(architecture){
  architecture.wall.material.color.set('#ffffff');architecture.wall.material.needsUpdate=true;
  Object.assign(architecture.floor.material,{map:parquet.map,normalMap:parquet.normal,
   roughnessMap:parquet.roughness,aoMap:parquet.ao,aoMapIntensity:.12,
-  roughness:.92,envMapIntensity:.8,clearcoat:.025,clearcoatRoughness:.65});
+  roughness:.45,envMapIntensity:1.05,clearcoat:.5,clearcoatRoughness:.18});
  architecture.floor.material.normalScale.set(.075,.075);
  architecture.floor.material.color.set('#ffffff');architecture.floor.material.needsUpdate=true;
  // Conversion sources are no longer used by the renderer.
