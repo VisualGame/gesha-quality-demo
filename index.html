@@ -85,7 +85,7 @@ const lowMemory = (navigator.deviceMemory || 8) <= 3;
 const state = { width:1800, height:2000, depth:350, columns:3, rows:4, thickness:22, finish:'oak', back:false, quality:false, relief:.35, gloss:.30, exposure:.96, reliefMode:'normal', mapsOn:true, aoEnabled:true, aoStrength:.24, shadowStrength:.65 };
 let renderer, scene, camera, orbit, shelf, materials = {}, tracer=null, tracerLoading=false, tracerDirty=true, cameraDirty=true, frameDirty=true, lastInteraction=performance.now();
 let modelMeshes=[], disposed=false, renderWidth=0, renderHeight=0, shadowKey=null, loadFinishMaterial=null;
-let composer=null, gtaoPass=null, aoPending=false, aoDirty=true, aoUnavailable=false, hemisphere=null, fillLight=null, windowFill=null, rightBounce=null, room=null, activeLightMode='realtime';
+let composer=null, gtaoPass=null, aoPending=false, aoDirty=true, aoUnavailable=false, hemisphere=null, fillLight=null, windowFill=null, rightBounce=null, room=null, photoDenoiseQuad=null, photoPresentedSamples=-1, activeLightMode='realtime';
 const clock={ lastSampleTime:0 };
 function setStatus(s){status.textContent=s}
 function setError(message){errorBox.hidden=false;errorBox.textContent=message;loader.style.display='none';}
@@ -147,8 +147,8 @@ function updateLighting(){
  const photo=activeLightMode==='photo';
  if(shadowKey)shadowKey.intensity=photo?0:50;
  if(shadowKey)shadowKey.shadow.intensity=THREE.MathUtils.clamp(state.shadowStrength,0,1);
- if(windowFill)windowFill.intensity=photo?5:2.2;
- if(fillLight)fillLight.intensity=photo?2:.9;
+ if(windowFill){windowFill.intensity=photo?9:2.2;windowFill.color.set(photo?'#f4f7ff':'#fff9ef');}
+ if(fillLight)fillLight.intensity=photo?4.5:.9;
  if(rightBounce)rightBounce.intensity=photo?0:.35;
  if(hemisphere)hemisphere.intensity=photo?0:.10;
  if(scene)scene.environmentIntensity=photo?.20:.16;
@@ -239,7 +239,7 @@ function paleOakTexture(source){
 // The 4.8 m square tile closes at both edges: 4 x 1.2 m boards, 24 x .2 m rows.
 // All channels use exactly the same crop and offsets, including the fine seams.
 function makeParquetMaps(sources){
- const size=2048,rows=24,board=size/4,result={};
+ const size=(smallDevice||lowMemory)?1024:2048,rows=24,board=size/4,result={};
  for(const [kind,source] of Object.entries(sources)){
   const canvas=document.createElement('canvas');canvas.width=canvas.height=size;
   const ctx=canvas.getContext('2d'),img=source.image;
@@ -494,7 +494,7 @@ function fitShadowCamera(){
  shadowKey.shadow.updateMatrices(shadowKey);
  shadowKey.shadow.needsUpdate=true;
 }
-// Switch between stable real-time lighting and a single finite area source for Photo.
+// Switch between stable real-time lighting and physical window sources for Photo.
 function usePhotoLighting(enabled){
  const mode=enabled?'photo':'realtime';
  if(activeLightMode===mode)return;
@@ -581,7 +581,11 @@ async function initPathTracing(){
   const mod=await import('https://esm.sh/three-gpu-pathtracer@0.0.24?external=three');
   if(typeof mod.WebGLPathTracer!=='function')throw new Error('Библиотека трассировки недоступна');
   const engine=new mod.WebGLPathTracer(renderer);
-  engine.renderToCanvas=true;
+  // Present the linear accumulation through the library's edge-preserving
+  // denoiser, then tone-map and convert to sRGB once for the canvas / PNG.
+  const {FullScreenQuad}=await import('three/addons/postprocessing/Pass.js');
+  photoDenoiseQuad=new FullScreenQuad(new mod.DenoiseMaterial({map:engine.target.texture,sigma:3.5,kSigma:1,threshold:.22}));
+  engine.renderToCanvas=false;
   engine.bounces=6;
   engine.tiles.set(smallDevice?2:3,smallDevice?2:3);
   engine.minSamples=1;
@@ -679,11 +683,18 @@ function run(){
    tracer.setScene(scene,camera);tracerDirty=false;cameraDirty=false;
   }else if(cameraDirty){tracer.updateCamera();cameraDirty=false;}
   const maxSamples=smallDevice||lowMemory?24:96;
-  if(tracer.samples<maxSamples){
-   tracer.renderSample();
-   const s=Math.floor(tracer.samples);
-   setStatus(`ФОТО · ${s} / ${maxSamples} SPP`);
-   qualityStatus.textContent=`Накопление: ${s} из ${maxSamples}`;
+  if(tracer.samples<maxSamples)tracer.renderSample();
+  const samples=Math.floor(tracer.samples);
+  if(tracer.isCompiling){
+   setStatus('ФОТО · ПОДГОТОВКА СВЕТА');qualityStatus.textContent='Подготовка света и материалов…';
+  }else{
+   setStatus(`ФОТО · ${samples} / ${maxSamples} SPP`);
+   qualityStatus.textContent=`Накопление: ${samples} из ${maxSamples}`;
+  }
+  if(tracer.samples>=1&&(photoPresentedSamples!==tracer.samples||frameDirty)){
+   photoDenoiseQuad.material.map=tracer.target.texture;
+   photoDenoiseQuad.render(renderer);
+   photoPresentedSamples=tracer.samples;frameDirty=false;
   }
  }catch(e){
   console.error('Tracing pipeline failed',e);
