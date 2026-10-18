@@ -249,7 +249,8 @@ function updateRoomLighting(){
 
 function updateLighting(){
  const photo=activeLightMode==='photo';
- if(shadowKey)shadowKey.intensity=0;
+ if(shadowKey)shadowKey.intensity=photo?38:30;
+ if(roomShell)roomShell.traverse(o=>{if(o.name==='Window sun haze')o.visible=!photo;});
  if(shadowKey)shadowKey.shadow.intensity=THREE.MathUtils.clamp(state.shadowStrength,0,1);
  if(windowFill){windowFill.intensity=photo?4.8:3.3;windowFill.color.set('#f4f7ff');}
  if(fillLight)fillLight.intensity=photo?1.8:.9;
@@ -328,6 +329,26 @@ function buildRoomShell(){
  // The primary emitter occupies the actual opening. The right emitter is a
  // weaker virtual wall return inside the room, rather than beyond an opaque wall.
  windowFill.position.set(-half-.01,(sill+head)/2,z);windowFill.width=winW-.12;windowFill.height=winH-.12;windowFill.lookAt(0,windowFill.position.y,z);
+ // Warm sunlight crosses the opening and reaches the parquet at a low angle.
+ shadowKey.position.set(-half+.14,head-.22,.45);shadowKey.target.position.set(1.65,.02,2.55);
+ shadowKey.angle=.33;shadowKey.penumbra=.45;shadowKey.decay=1;shadowKey.distance=22;
+ shadowKey.target.updateMatrixWorld(true);
+ // A few feathered light sheets approximate sparse dust scattering in realtime.
+ // They add no accumulation pass and are excluded from the photo renderer.
+ const hazeMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
+  uniforms:{tint:{value:new THREE.Color('#ffe0a8')}},
+  vertexShader:'varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'varying vec2 vUv;uniform vec3 tint;void main(){float edge=pow(max(0.,sin(vUv.x*3.141593)),2.5);float ends=smoothstep(0.,.06,vUv.y)*(1.-smoothstep(.65,1.,vUv.y));gl_FragColor=vec4(tint,edge*ends*.10);}'
+ });
+ hazeMat.userData.roomHaze=true;
+ for(let i=0;i<3;i++){
+  const start=new THREE.Vector3(-half+.15,head-.38-i*.55,.28+i*.65);
+  const end=start.clone().add(new THREE.Vector3(6.3,-3.2,2.15));
+  const direction=end.clone().sub(start),length=direction.length();
+  const beam=placeMesh(roomShell,new THREE.PlaneGeometry(.36+i*.12,length),hazeMat,...start.clone().add(end).multiplyScalar(.5).toArray());
+  beam.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction.normalize());
+  beam.name='Window sun haze';beam.renderOrder=4;beam.visible=activeLightMode!=='photo';
+ }
  fillLight.position.set(half-.10,2.1,1.25);fillLight.width=1.45;fillLight.height=2.5;fillLight.lookAt(0,1.1,0);
 }
 
@@ -432,7 +453,7 @@ function initializeRenderer(){
  renderer.outputColorSpace=THREE.SRGBColorSpace;
  renderer.toneMapping=THREE.NeutralToneMapping;
  renderer.toneMappingExposure=state.exposure;
- renderer.shadowMap.enabled=false;
+ renderer.shadowMap.enabled=true;
  renderer.shadowMap.type=THREE.PCFShadowMap;
  renderer.shadowMap.autoUpdate=true;
  renderer.setPixelRatio(Math.min(devicePixelRatio,smallDevice?1.75:2));
@@ -451,7 +472,7 @@ function initializeRenderer(){
  hemisphere=new THREE.HemisphereLight('#f4f6ff','#d8c5a4',0);scene.add(hemisphere);
  shadowKey=new THREE.SpotLight('#fff9ee',0,18,Math.PI/2.8,1,2);
  shadowKey.position.set(-3.4,3.0,2.3);shadowKey.target.position.set(0,1.0,-.1);
- shadowKey.castShadow=false;shadowKey.shadow.mapSize.set(smallDevice?1024:2048,smallDevice?1024:2048);
+ shadowKey.castShadow=true;shadowKey.shadow.mapSize.set(smallDevice?1024:2048,smallDevice?1024:2048);
  shadowKey.shadow.camera.near=.4;shadowKey.shadow.camera.far=18;
  shadowKey.shadow.bias=-.00010;shadowKey.shadow.normalBias=.002;
  shadowKey.shadow.intensity=.36;scene.add(shadowKey,shadowKey.target);
@@ -525,6 +546,18 @@ function makeParquetMaps(sources){
    const x=col*board+(row%2)*board*.5,y=row*size/rows;
    const sx=Math.floor(hash*iw*.35),sy=Math.floor(((hash*3)%1)*ih*.65);
    ctx.drawImage(img,sx,sy,iw*.6,ih*.3,x+.35,y+.35,board-.7,size/rows-.7);
+   // Matched bevel normals and recessed joints, in real board coordinates.
+   const edge=Math.max(1,size/1500),rh=size/rows;
+   if(kind==='normal'){
+    const bevel=(a,b,c,d,c0,c1)=>{const g=ctx.createLinearGradient(a,b,c,d);g.addColorStop(0,c0);g.addColorStop(1,c1);return g;};
+    ctx.fillStyle=bevel(x,y,x+edge*2,y,'rgb(58,128,235)','rgb(128,128,255)');ctx.fillRect(x,y,edge*2,rh);
+    ctx.fillStyle=bevel(x+board-edge*2,y,x+board,y,'rgb(128,128,255)','rgb(198,128,235)');ctx.fillRect(x+board-edge*2,y,edge*2,rh);
+    ctx.fillStyle=bevel(x,y,x,y+edge*2,'rgb(128,198,235)','rgb(128,128,255)');ctx.fillRect(x,y,board,edge*2);
+    ctx.fillStyle=bevel(x,y+rh-edge*2,x,y+rh,'rgb(128,128,255)','rgb(128,58,235)');ctx.fillRect(x,y+rh-edge*2,board,edge*2);
+   }
+   if(kind==='ao'||kind==='roughness'){
+    ctx.strokeStyle=kind==='ao'?'#666666':'#eeeeee';ctx.lineWidth=edge;ctx.strokeRect(x,y,board,rh);
+   }
    if(kind==='map'){
     ctx.fillStyle=`rgba(80,65,42,${hash*.045})`;ctx.fillRect(x+.35,y+.35,board-.7,size/rows-.7);
    }
@@ -629,9 +662,9 @@ async function loadMaterials(architecture){
  architecture.wall.material.color.set('#ffffff');architecture.wall.material.needsUpdate=true;
  wallUV(architecture.wall.geometry,architecture.wall.position);
  Object.assign(architecture.floor.material,{map:parquet.map,normalMap:parquet.normal,
-  roughnessMap:parquet.roughness,aoMap:parquet.ao,aoMapIntensity:.12,
+  roughnessMap:parquet.roughness,aoMap:parquet.ao,aoMapIntensity:.38,
   roughness:.45,envMapIntensity:1.05,clearcoat:.5,clearcoatRoughness:.18});
- architecture.floor.material.normalScale.set(.075,.075);
+ architecture.floor.material.normalScale.set(.38,.38);
  architecture.floor.material.color.set('#ffffff');architecture.floor.material.needsUpdate=true;
  // Conversion sources are no longer used by the renderer.
  for(const t of [floorMap,floorNormal,floorRough,floorAO,paleFloor])t.dispose();
@@ -774,7 +807,7 @@ function board(w,h,d,x,y,z,orientation,tag){
 // Keep the window fixed as dimensions change; only aim at the shelf centre.
 function fitShadowCamera(){
  if(!shadowKey||!shelf||!shelf.children.length)return;
- shadowKey.target.position.set(0,state.height/2000,.05);
+ shadowKey.target.position.set(1.65,.02,2.55);
  shadowKey.target.updateMatrixWorld(true);
  shadowKey.shadow.camera.near=.4;
  shadowKey.shadow.camera.far=18;
