@@ -350,7 +350,24 @@ function buildRoomShell(){
 
  shadowKey.target.updateMatrixWorld(true);
  fillLight.position.set(half-.10,2.1,1.25);fillLight.width=1.45;fillLight.height=2.5;fillLight.lookAt(0,1.1,0);
+ roomShell.userData.height=height;
+ roomShell.traverse(o=>{if(o.isMesh){
+  if(o.name==='White ceiling')o.userData.roomBoundary='ceiling';
+  else if(o.position.x<-half+.4)o.userData.roomBoundary='left';
+  else if(o.position.x>half-.4)o.userData.roomBoundary='right';
+ }});
+ updateRoomVisibility();
 }
+function updateRoomVisibility(){
+ if(!roomShell||!room||!camera)return;
+ const half=room.halfWidth;let changed=false;
+ const visibility={left:camera.position.x>-half+.10,right:camera.position.x<half-.10,ceiling:camera.position.y<roomShell.userData.height-.10};
+ roomShell.traverse(o=>{const side=o.userData.roomBoundary;if(side&&o.visible!==visibility[side]){o.visible=visibility[side];changed=true;}});
+ const backVisible=camera.position.z>-.46;
+ if(room.wall.visible!==backVisible){room.wall.visible=backVisible;changed=true;}
+ if(changed){tracerDirty=true;aoDirty=true;frameDirty=true;}
+}
+
 
 function addBooks(parent,seed){
  const colours=['#b8b29e','#6e796b','#d7c7ac','#a88772','#b9b5a7','#555a56'];
@@ -998,6 +1015,7 @@ function run(){
  requestAnimationFrame(run);
  if(!renderer||disposed)return;
  const moved=orbit.update();
+ updateRoomVisibility();
  const idle=performance.now()-lastInteraction;
  if(!state.quality||idle<1000||tracerLoading){usePhotoLighting(false);renderPBR();return;}
  if(!tracer){usePhotoLighting(false);initPathTracing();renderPBR();return;}
