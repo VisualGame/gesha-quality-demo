@@ -249,11 +249,11 @@ function updateRoomLighting(){
 
 function updateLighting(){
  const photo=activeLightMode==='photo';
- if(shadowKey)shadowKey.intensity=photo?32:24;
+ if(shadowKey)shadowKey.intensity=photo?38:30;
 
  if(shadowKey)shadowKey.shadow.intensity=THREE.MathUtils.clamp(state.shadowStrength,0,1);
- if(windowFill){windowFill.intensity=photo?7.0:5.2;windowFill.color.set('#f4f7ff');}
- if(fillLight)fillLight.intensity=photo?1.8:.9;
+ if(windowFill){windowFill.intensity=photo?10.0:8.5;windowFill.color.set('#f4f7ff');}
+ if(fillLight)fillLight.intensity=photo?2.4:1.6;
  if(rightBounce)rightBounce.intensity=photo?0:.18;
  if(hemisphere)hemisphere.intensity=photo?0:.035;
  if(scene)scene.environmentIntensity=photo?.20:.20;
@@ -329,9 +329,25 @@ function buildRoomShell(){
  // The primary emitter occupies the actual opening. The right emitter is a
  // weaker virtual wall return inside the room, rather than beyond an opaque wall.
  windowFill.position.set(-half-.01,(sill+head)/2,z);windowFill.width=winW-.12;windowFill.height=winH-.12;windowFill.lookAt(0,windowFill.position.y,z);
- // Warm sunlight crosses the opening and reaches the parquet at a low angle.
- shadowKey.position.set(-half+.14,head-.22,.45);shadowKey.target.position.set(1.65,.02,2.55);
- shadowKey.angle=.33;shadowKey.penumbra=.45;shadowKey.decay=1;shadowKey.distance=22;
+ // Project the window aperture onto the rear wall, above and behind the shelf.
+ shadowKey.position.set(-half+.14,head-.35,2.4);shadowKey.target.position.set(0,1.9,-.56);
+ shadowKey.angle=.38;shadowKey.penumbra=.08;shadowKey.decay=1;shadowKey.distance=22;
+ // Project a window-shaped aperture through the light itself: surfaces receive
+ // actual direct light, so shelf geometry occludes it through the shadow map.
+ if(!shadowKey.map){
+  const c=document.createElement('canvas');c.width=c.height=1024;const ctx=c.getContext('2d');
+  ctx.fillStyle='#000';ctx.fillRect(0,0,1024,1024);
+  const w=620,h=w*(head-sill)/(winFront-winBack),x=(1024-w)/2,y=(1024-h)/2;
+  ctx.fillStyle='#fff';ctx.fillRect(x,y,w,h);
+  ctx.fillStyle='#000';
+  ctx.fillRect(512-w*.007,y,w*.014,h);
+  ctx.fillRect(x,y+h*.45-h*.007,w,h*.014);
+  const softened=document.createElement('canvas');softened.width=softened.height=1024;
+  const sc=softened.getContext('2d');sc.filter='blur(3px)';sc.drawImage(c,0,0);
+  shadowKey.map=new THREE.CanvasTexture(softened);shadowKey.map.colorSpace=THREE.NoColorSpace;
+  shadowKey.map.wrapS=shadowKey.map.wrapT=THREE.ClampToEdgeWrapping;
+ }
+
  shadowKey.target.updateMatrixWorld(true);
  fillLight.position.set(half-.10,2.1,1.25);fillLight.width=1.45;fillLight.height=2.5;fillLight.lookAt(0,1.1,0);
 }
@@ -792,7 +808,7 @@ function board(w,h,d,x,y,z,orientation,tag){
 // Keep the window fixed as dimensions change; only aim at the shelf centre.
 function fitShadowCamera(){
  if(!shadowKey||!shelf||!shelf.children.length)return;
- shadowKey.target.position.set(1.65,.02,2.55);
+ shadowKey.target.position.set(0,1.9,-.56);
  shadowKey.target.updateMatrixWorld(true);
  shadowKey.shadow.camera.near=.4;
  shadowKey.shadow.camera.far=18;
