@@ -162,7 +162,7 @@ const shelfLightGLSL=`
    // For axis Z the face coordinates are YX after the ZYX permutation.
    coverage=shelfUnion(coverage,shelfRectangleCoverage(p,direction,halfU,halfV,-d*.5+.008,vec2(t,-w*.5+t),vec2(h-t,w*.5-t),2));
   }
-  return 1.0-(.6+.35*shelfShadowDensity)*coverage;
+  return 1.0-(.48+.40*shelfShadowDensity)*coverage;
  }
 
  float shelfPortalCorner(float x,float y,float z){
@@ -259,7 +259,7 @@ function updateLighting(){
  const photo=activeLightMode==='photo';
  if(shadowKey){shadowKey.intensity=(photo?38:30)*state.sunPower/100;shadowKey.penumbra=.08+state.sunSoftness*.003;updateSunAperture();}
 
- if(shadowKey)shadowKey.shadow.intensity=THREE.MathUtils.clamp(state.shadowStrength,0,1);
+ if(shadowKey)shadowKey.shadow.intensity=THREE.MathUtils.clamp(state.shadowStrength*.82,0,1);
  if(windowFill){windowFill.intensity=(photo?10.0:8.5)*state.daylightPower/100;windowFill.color.set('#f4f7ff');}
  if(fillLight)fillLight.intensity=(photo?4.6:3.8)*state.rightPower/100;
  if(rightBounce)rightBounce.intensity=photo?0:.18;
@@ -427,6 +427,7 @@ async function loadImportedDecor(load){
 }
 
 function initializeRenderer(){
+ THREE.ShaderChunk.tonemapping_fragment='#if defined( TONE_MAPPING )\n gl_FragColor.rgb=max(vec3(0.),(gl_FragColor.rgb-vec3(.18))*1.12+vec3(.18));\n #endif\n'+THREE.ShaderChunk.tonemapping_fragment;
  renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
  renderer.outputColorSpace=THREE.SRGBColorSpace;
  renderer.toneMapping=THREE.NeutralToneMapping;
@@ -452,7 +453,7 @@ function initializeRenderer(){
  shadowKey.position.set(-3.4,3.0,2.3);shadowKey.target.position.set(0,1.0,-.1);
  shadowKey.castShadow=true;shadowKey.shadow.mapSize.set(smallDevice?1024:2048,smallDevice?1024:2048);
  shadowKey.shadow.camera.near=.4;shadowKey.shadow.camera.far=18;
- shadowKey.shadow.bias=-.00010;shadowKey.shadow.normalBias=.002;
+ shadowKey.shadow.bias=-.00006;shadowKey.shadow.normalBias=.001;shadowKey.shadow.radius=3.5;
  shadowKey.shadow.intensity=.36;scene.add(shadowKey,shadowKey.target);
  windowFill=new THREE.RectAreaLight('#fff9ef',0,2.6,3.0);
  windowFill.position.set(-3.4,2.6,1.8);windowFill.lookAt(0,1,-.1);scene.add(windowFill);
@@ -668,7 +669,7 @@ function neutralWallTexture(source){
  const canvas=document.createElement('canvas'),image=source.image;canvas.width=image.width;canvas.height=image.height;
  const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(image,0,0);
  const pixels=ctx.getImageData(0,0,canvas.width,canvas.height),d=pixels.data;
- for(let i=0;i<d.length;i+=4){const y=.2126*d[i]+.7152*d[i+1]+.0722*d[i+2];d[i]=y+1;d[i+1]=y;d[i+2]=y-4;}
+ for(let i=0;i<d.length;i+=4){const y=.2126*d[i]+.7152*d[i+1]+.0722*d[i+2];d[i]=y+17;d[i+1]=y+10;d[i+2]=y-8;}
  ctx.putImageData(pixels,0,0);const texture=repeatTexture(new THREE.CanvasTexture(canvas));texture.colorSpace=THREE.SRGBColorSpace;return texture;
 }
 function updateRugPlacement(){
