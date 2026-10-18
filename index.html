@@ -42,6 +42,7 @@
  <div class="section-title"><span>03</span><b>Визуализация</b><span class="divider"></span></div>
  <div class="quality"><button id="modeRealtime" class="mode active" aria-pressed="true"><strong>Быстро</strong><small>Объёмный свет</small></button><button id="modePhoto" class="mode" aria-pressed="false"><strong>Фото</strong><small>Трассировка*</small></button></div>
  <div class="section-title"><span>04</span><b>Свет и объём</b><span class="divider"></span></div>
+ <div class="sliders micro-controls"><div class="field"><label for="sunPower"><span>Яркость солнца</span><output id="sunPowerValue">45%</output></label><input id="sunPower" type="range" min="0" max="200" step="1" value="45" /></div><div class="field"><label for="sunSoftness"><span>Мягкость солнечного пятна</span><output id="sunSoftnessValue">70%</output></label><input id="sunSoftness" type="range" min="0" max="100" step="1" value="70" /></div><div class="field"><label for="daylightPower"><span>Дневной свет слева</span><output id="daylightPowerValue">100%</output></label><input id="daylightPower" type="range" min="0" max="250" step="1" value="100" /></div><div class="field"><label for="rightPower"><span>Мягкий свет справа</span><output id="rightPowerValue">100%</output></label><input id="rightPower" type="range" min="0" max="250" step="1" value="100" /></div><div class="field"><label for="hdriPower"><span>Свет окружения · HDRI</span><output id="hdriPowerValue">100%</output></label><input id="hdriPower" type="range" min="0" max="250" step="1" value="100" /></div></div><div class="quality"><button id="copyLighting" class="mode" type="button">Копировать настройки</button><button id="resetLighting" class="mode" type="button">Сбросить свет</button></div><p id="lightCopyStatus" class="pbr-help" aria-live="polite">Подберите свет и скопируйте настройки, чтобы прислать их мне. Экспозиция регулируется ниже.</p><textarea id="lightSettingsText" readonly aria-label="Настройки света для отправки" hidden style="width:100%;min-height:150px;box-sizing:border-box"></textarea>
  <label class="check-row maps-check"><input type="checkbox" id="aoEnabled" checked /><span>Контактное затенение GTAO (после остановки камеры)</span></label>
  <div class="sliders micro-controls">
   <div class="field"><label for="aoStrength"><span>Глубина контактных теней</span><output id="aoStrengthValue">24%</output></label><input id="aoStrength" type="range" min="0" max="100" step="1" value="24" /></div>
@@ -84,7 +85,7 @@ const loader = document.getElementById('loader');
 const errorBox = document.getElementById('errorBox');
 const smallDevice = matchMedia('(max-width: 800px)').matches;
 const lowMemory = (navigator.deviceMemory || 8) <= 3;
-const state = { width:1800, height:2000, depth:350, columns:3, rows:4, thickness:22, finish:'oak', back:false, decor:true, quality:false, relief:.35, gloss:.30, exposure:.96, reliefMode:'normal', mapsOn:true, aoEnabled:true, aoStrength:.24, shadowStrength:.65 };
+const state = { width:1800, height:2000, depth:350, columns:3, rows:4, thickness:22, finish:'oak', back:false, decor:true, quality:false, relief:.35, gloss:.30, exposure:.96, reliefMode:'normal', mapsOn:true, aoEnabled:true, aoStrength:.24, shadowStrength:.65, sunPower:45, sunSoftness:70, daylightPower:100, rightPower:100, hdriPower:100 };
 let renderer, scene, camera, orbit, shelf, materials = {}, tracer=null, tracerLoading=false, tracerDirty=true, cameraDirty=true, frameDirty=true, lastInteraction=performance.now();
 let modelMeshes=[], disposed=false, renderWidth=0, renderHeight=0, shadowKey=null, loadFinishMaterial=null;
 let composer=null, gtaoPass=null, aoPending=false, aoDirty=true, aoUnavailable=false, hemisphere=null, fillLight=null, windowFill=null, rightBounce=null, room=null, photoDenoiseQuad=null, photoPresentedSamples=-1, activeLightMode='realtime';
@@ -249,14 +250,14 @@ function updateRoomLighting(){
 
 function updateLighting(){
  const photo=activeLightMode==='photo';
- if(shadowKey)shadowKey.intensity=photo?38:30;
+ if(shadowKey){shadowKey.intensity=(photo?38:30)*state.sunPower/100;shadowKey.penumbra=.08+state.sunSoftness*.003;updateSunAperture();}
 
  if(shadowKey)shadowKey.shadow.intensity=THREE.MathUtils.clamp(state.shadowStrength,0,1);
- if(windowFill){windowFill.intensity=photo?10.0:8.5;windowFill.color.set('#f4f7ff');}
- if(fillLight)fillLight.intensity=photo?2.4:1.6;
+ if(windowFill){windowFill.intensity=(photo?10.0:8.5)*state.daylightPower/100;windowFill.color.set('#f4f7ff');}
+ if(fillLight)fillLight.intensity=(photo?4.6:3.8)*state.rightPower/100;
  if(rightBounce)rightBounce.intensity=photo?0:.18;
  if(hemisphere)hemisphere.intensity=photo?0:.035;
- if(scene)scene.environmentIntensity=photo?.20:.20;
+ if(scene)scene.environmentIntensity=.20*state.hdriPower/100;
 }
 
 let roomShell=null,decorRoot=null;
@@ -334,22 +335,10 @@ function buildRoomShell(){
  shadowKey.angle=.38;shadowKey.penumbra=.08;shadowKey.decay=1;shadowKey.distance=22;
  // Project a window-shaped aperture through the light itself: surfaces receive
  // actual direct light, so shelf geometry occludes it through the shadow map.
- if(!shadowKey.map){
-  const c=document.createElement('canvas');c.width=c.height=1024;const ctx=c.getContext('2d');
-  ctx.fillStyle='#000';ctx.fillRect(0,0,1024,1024);
-  const w=620,h=w*(head-sill)/(winFront-winBack),x=(1024-w)/2,y=(1024-h)/2;
-  ctx.fillStyle='#fff';ctx.fillRect(x,y,w,h);
-  ctx.fillStyle='#000';
-  ctx.fillRect(512-w*.007,y,w*.014,h);
-  ctx.fillRect(x,y+h*.45-h*.007,w,h*.014);
-  const softened=document.createElement('canvas');softened.width=softened.height=1024;
-  const sc=softened.getContext('2d');sc.filter='blur(3px)';sc.drawImage(c,0,0);
-  shadowKey.map=new THREE.CanvasTexture(softened);shadowKey.map.colorSpace=THREE.NoColorSpace;
-  shadowKey.map.wrapS=shadowKey.map.wrapT=THREE.ClampToEdgeWrapping;
- }
+ updateSunAperture();
 
  shadowKey.target.updateMatrixWorld(true);
- fillLight.position.set(half-.10,2.1,1.25);fillLight.width=1.45;fillLight.height=2.5;fillLight.lookAt(0,1.1,0);
+ fillLight.position.set(state.width/2000+.8,1.8,1.5);fillLight.width=1.7;fillLight.height=2.6;fillLight.lookAt(0,1.05,0);
  roomShell.userData.height=height;
  roomShell.traverse(o=>{if(o.isMesh){
   if(o.name==='White ceiling')o.userData.roomBoundary='ceiling';
@@ -357,6 +346,22 @@ function buildRoomShell(){
   else if(o.position.x>half-.4)o.userData.roomBoundary='right';
  }});
  updateRoomVisibility();
+}
+function updateSunAperture(){
+ if(!shadowKey||!room?.window)return;
+ const {head,sill,winFront,winBack}=room.window;
+ const key=[head,sill,winFront,winBack,state.sunSoftness].join('/');
+ if(shadowKey.userData.apertureKey===key)return;
+ const c=document.createElement('canvas');c.width=c.height=1024;const ctx=c.getContext('2d');
+ ctx.fillStyle='#000';ctx.fillRect(0,0,1024,1024);
+ const w=620,h=w*(head-sill)/(winFront-winBack),x=(1024-w)/2,y=(1024-h)/2;
+ ctx.fillStyle='#fff';ctx.fillRect(x,y,w,h);ctx.fillStyle='#000';
+ ctx.fillRect(512-w*.007,y,w*.014,h);ctx.fillRect(x,y+h*.45-h*.007,w,h*.014);
+ const softened=document.createElement('canvas');softened.width=softened.height=1024;
+ const sc=softened.getContext('2d');sc.filter=`blur(${1+state.sunSoftness*.18}px)`;sc.drawImage(c,0,0);
+ const previous=shadowKey.map;shadowKey.map=new THREE.CanvasTexture(softened);
+ shadowKey.map.colorSpace=THREE.NoColorSpace;
+ shadowKey.userData.apertureKey=key;if(previous)previous.dispose();
 }
 function updateRoomVisibility(){
  if(!roomShell||!room||!camera)return;
@@ -510,7 +515,7 @@ function initializeRenderer(){
  for(const m of [floor,wall,baseboard])enableRoomLighting(m.material);
  room={floor,wall};updateLighting();return room;
 }
-function repeatTexture(texture){texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.anisotropy=Math.min(12,renderer.capabilities.getMaxAnisotropy());return texture;}
+function repeatTexture(texture){texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.anisotropy=renderer.capabilities.getMaxAnisotropy();return texture;}
 function deriveMonoTexture(sourceTexture,{invert=false,contrast=1.0,brightness=0.0}={}){
  const img=sourceTexture?.image;if(!img)return null;
  const w=img.naturalWidth||img.videoWidth||img.width||1024;
@@ -625,11 +630,12 @@ function makeWallpaperMaps(){
 
 async function loadMaterials(architecture){
  const textureLoader=new THREE.TextureLoader();
- const load=(path,color=false)=>new Promise((resolve,reject)=>textureLoader.load(assetURL(path),t=>{
+ const textureCache=new Map();
+ const load=(path,color=false)=>{if(textureCache.has(path))return textureCache.get(path);const promise=new Promise((resolve,reject)=>textureLoader.load(assetURL(path),t=>{
    repeatTexture(t);t.minFilter=THREE.LinearMipmapLinearFilter;t.magFilter=THREE.LinearFilter;
    if(color)t.colorSpace=THREE.SRGBColorSpace; else t.colorSpace=THREE.NoColorSpace;
    resolve(t);
- },undefined,reject));
+ },undefined,reject));textureCache.set(path,promise);return promise;};
  // Load one finish on startup; load additional finishes only on selection (mobile GPU memory).
  const makeFinish=async(name)=>{
    if(materials[name])return;
@@ -637,17 +643,18 @@ async function loadMaterials(architecture){
    for(const key of ['vertical','horizontal','edgeV','edgeH']){
      // Correct names: oak_edge_normal_horizontal.webp, never oak_edge_normal_horizontal_edge_horizontal.webp.
      const edge=key==='edgeV'||key==='edgeH', horizontal=key==='horizontal'||key==='edgeH';
-     const prefix=`./assets/materials/${name}${edge?'_edge':''}_`;
      const suffix=horizontal?'_horizontal':'';
+     const level=(smallDevice||lowMemory||renderer.capabilities.maxTextureSize<4096)?'2k':'4k';
+     const hd='./assets/materials/hd/';
      const [map,normalMap,roughnessMap,aoMap,bumpMap]=await Promise.all([
-       load(`${prefix}basecolor${suffix}.webp`,true),
-       load(`${prefix}normal${suffix}.webp`),
-       load(`${prefix}roughness${suffix}.webp`),
-       load(`${prefix}ao${suffix}.webp`),
-       load(`${prefix}height${suffix}.webp`)
+       load(`${hd}${name}_color${suffix}_${level}.webp`,true),
+       load(`${hd}normal${suffix}_${level}.webp`),
+       load(`${hd}roughness${suffix}_2k.webp`),
+       load(`${hd}ao${suffix}_2k.webp`),
+       load(`${hd}height${suffix}_2k.webp`)
      ]);
      const mat=new THREE.MeshPhysicalMaterial({
-       color:'#ffffff',map:name==='oak'?paleOakTexture(map):map,normalMap,roughnessMap,aoMap,roughness:1,
+       color:'#ffffff',map,normalMap,roughnessMap,aoMap,roughness:1,
        aoMapIntensity:.30,metalness:0,normalScale:new THREE.Vector2(1.0,1.0),
        clearcoat:.12,clearcoatRoughness:.32,envMapIntensity:1.05,
        specularIntensity:1
@@ -944,6 +951,23 @@ async function initPathTracing(){
  }finally{tracerLoading=false;lastInteraction=performance.now()}
 }
 function bindUI(){
+ const lightDefaults={sunPower:45,sunSoftness:70,daylightPower:100,rightPower:100,hdriPower:100};
+ for(const key of Object.keys(lightDefaults))document.getElementById(key).addEventListener('input',e=>{
+  state[key]=Number(e.target.value);document.getElementById(key+'Value').textContent=state[key]+'%';
+  updateLighting();invalidate(true);
+ });
+ document.getElementById('resetLighting').addEventListener('click',()=>{
+  for(const [key,value] of Object.entries(lightDefaults)){state[key]=value;document.getElementById(key).value=value;document.getElementById(key+'Value').textContent=value+'%';}
+  updateLighting();invalidate(true);document.getElementById('lightSettingsText').hidden=true;
+  document.getElementById('lightCopyStatus').textContent='Исходные настройки света восстановлены.';
+ });
+ document.getElementById('copyLighting').addEventListener('click',async()=>{
+  const settings={preset:'SHELF daylight v1',mode:state.quality?'photo':'realtime',lights:Object.fromEntries(Object.keys(lightDefaults).map(k=>[k,state[k]])),exposure:state.exposure,shadowStrength:state.shadowStrength,aoStrength:state.aoStrength,aoEnabled:state.aoEnabled,object:{width:state.width,height:state.height,depth:state.depth,columns:state.columns,rows:state.rows,finish:state.finish,back:state.back,decor:state.decor}};
+  const text=JSON.stringify(settings,null,2),field=document.getElementById('lightSettingsText');field.value=text;field.hidden=false;
+  try{await navigator.clipboard.writeText(text);document.getElementById('lightCopyStatus').textContent='Настройки скопированы. Вставьте их в сообщение мне.';}
+  catch(e){field.focus();field.select();document.getElementById('lightCopyStatus').textContent='Скопируйте выделенный текст и пришлите его мне.';}
+ });
+
  for(const name of ['width','height','depth']){
   const el=document.getElementById(name),out=document.getElementById(name+'Value');
   const onVal=()=>{state[name]=+el.value;out.textContent=el.value;rebuild(true)};
