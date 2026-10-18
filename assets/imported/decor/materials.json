@@ -1,0 +1,206 @@
+{
+  "035": {
+    "white chalk": {
+      "channels": {
+        "3dsMax|CoronaMtlPb|texmapReflect": "035_ae702396b.webp",
+        "3dsMax|CoronaMtlPb|texmapReflectGlossiness": "035_ae702396b.webp",
+        "3dsMax|CoronaMtlPb|texmapBump": "035_ae702396b.webp"
+      }
+    },
+    "perfume-wood": {
+      "channels": {}
+    },
+    "glass-pefume": {
+      "channels": {}
+    },
+    "pefume": {
+      "channels": {}
+    },
+    "glass-vase-pattern": {
+      "channels": {}
+    },
+    "candle": {
+      "channels": {}
+    },
+    "golden": {
+      "channels": {
+        "3dsMax|CoronaMtlPb|texmapReflectGlossiness": "035_ae702396b.webp",
+        "3dsMax|CoronaMtlPb|texmapBump": "035_ae702396b.webp"
+      }
+    },
+    "wicks": {
+      "channels": {}
+    },
+    "glass-vase-dark": {
+      "channels": {}
+    },
+    "marble": {
+      "channels": {
+        "3dsMax|CoronaMtlPb|texmapDiffuse": "035_ab20d26b7.webp"
+      }
+    },
+    "leaf": {
+      "channels": {
+        "3dsMax|CoronaMtlPb|texmapOpacity": "035_fcf03e9ef.webp",
+        "Diffuse": "035_3845d6095.webp"
+      }
+    },
+    "brunch-leaf": {
+      "channels": {}
+    },
+    "flame": {
+      "channels": {
+        "3dsMax|CoronaMtlPb|texmapDiffuse": "035_c872867b7.webp",
+        "3dsMax|CoronaMtlPb|texmapOpacity": "035_96a1837c9.webp"
+      }
+    },
+    "glass-vase": {
+      "channels": {}
+    },
+    "glass-liquid": {
+      "channels": {}
+    },
+    "rimowa": {
+      "channels": {
+        "3dsMax|CoronaMtlPb|texmapDiffuse": "035_bbbfc7c71.webp"
+      }
+    },
+    "paper": {
+      "channels": {}
+    },
+    "green leaves": {
+      "channels": {
+        "3dsMax|CoronaMtlPb|texmapReflect": "035_40e663f19.webp",
+        "3dsMax|CoronaMtlPb|texmapOpacity": "035_309aef81f.webp",
+        "3dsMax|CoronaMtlPb|texmapBump": "035_d308ce90e.webp",
+        "Diffuse": "035_40e663f19.webp",
+        "Normal": "035_d308ce90e.webp",
+        "Opacity": "035_309aef81f.webp"
+      }
+    },
+    "brunch": {
+      "channels": {}
+    },
+    "the art": {
+      "channels": {
+        "3dsMax|CoronaMtlPb|texmapDiffuse": "035_cb1497dca.webp"
+      }
+    },
+    "pictuer": {
+      "channels": {
+        "3dsMax|CoronaMtlPb|texmapBump": "035_f2623f390.webp"
+      }
+    },
+    "glossyglass-white": {
+      "channels": {}
+    },
+    "stone-cream": {
+      "channels": {}
+    },
+    "glass-light": {
+      "channels": {}
+    },
+    "metal-light": {
+      "channels": {}
+    },
+    "plastic-light": {
+      "channels": {}
+    },
+    "light": {
+      "channels": {}
+    },
+    "dry plant": {
+      "channels": {}
+    },
+    "stone ": {
+      "channels": {}
+    },
+    "textuer1": {
+      "channels": {
+        "3dsMax|CoronaMtlPb|texmapBump": "035_a7e6b476d.webp"
+      }
+    }
+  },
+  "039": {
+    "the art": {
+      "channels": {
+        "3dsMax|CoronaMtlPb|texmapDiffuse": "039_b3efbc524.webp"
+      }
+    },
+    "paper": {
+      "channels": {
+        "3dsMax|CoronaMtlPb|texmapDiffuse": "039_0e8635e17.webp"
+      }
+    },
+    "shirley": {
+      "channels": {
+        "3dsMax|CoronaMtlPb|texmapDiffuse": "039_dd623d8c7.webp"
+      }
+    },
+    "texture02": {
+      "channels": {
+        "3dsMax|CoronaMtlPb|texmapBump": "039_09e7c134b.webp"
+      }
+    },
+    "frame02": {
+      "channels": {}
+    },
+    "textuer1": {
+      "channels": {
+        "3dsMax|CoronaMtlPb|texmapBump": "039_30c7df8f4.webp"
+      }
+    },
+    "green marble": {
+      "channels": {
+        "3dsMax|CoronaMtlPb|texmapDiffuse": "039_572e85606.webp"
+      }
+    },
+    "glass": {
+      "channels": {}
+    },
+    "stone-lime": {
+      "channels": {
+        "Diffuse": "039_3ac299880.webp",
+        "Normal": "039_6ec5d69b1.webp"
+      }
+    },
+    "Concrete ": {
+      "channels": {
+        "Diffuse": "039_af13f1950.webp",
+        "Normal": "039_68214c0de.webp"
+      }
+    },
+    "glosssy pottery": {
+      "channels": {
+        "3dsMax|CoronaMtlPb|texmapReflect": "039_183b68492.webp",
+        "3dsMax|CoronaMtlPb|texmapReflectGlossiness": "039_9342b67fd.webp",
+        "3dsMax|CoronaMtlPb|texmapFresnelIor": "039_a7afd36b6.webp",
+        "3dsMax|CoronaMtlPb|texmapDisplace": "039_3541cdb5a.webp",
+        "Diffuse": "039_d40b9e68a.webp",
+        "Normal": "039_de96f03cf.webp"
+      }
+    },
+    "crasim": {
+      "channels": {
+        "3dsMax|CoronaMtlPb|texmapDiffuse": "039_45c9d3436.webp"
+      }
+    },
+    "considered": {
+      "channels": {
+        "3dsMax|CoronaMtlPb|texmapDiffuse": "039_0e45ed92b.webp"
+      }
+    },
+    "brunch": {
+      "channels": {}
+    },
+    "leaves": {
+      "channels": {
+        "3dsMax|CoronaMtlPb|texmapOpacity": "039_5705c5c67.webp",
+        "3dsMax|CoronaMtlPb|texmapBump": "039_1568ef659.webp",
+        "Diffuse": "039_f673340cd.webp",
+        "Normal": "039_1568ef659.webp",
+        "Opacity": "039_5705c5c67.webp"
+      }
+    }
+  }
+}

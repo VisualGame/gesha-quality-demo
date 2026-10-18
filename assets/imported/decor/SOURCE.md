@@ -1,0 +1,1 @@
+Imported from user supplied Decorative set035-corona6.FBX and Decorative set039-corona6.FBX. Geometry extracted as 13 named normalized compositions with original UVs. Textures reduced to maximum 1024px; Corona material channels adapted to browser PBR. Library compressed with EXT_meshopt_compression. Original user files untouched.

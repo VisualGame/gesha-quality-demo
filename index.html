@@ -72,6 +72,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
@@ -267,6 +268,7 @@ function updateLighting(){
 }
 
 let roomShell=null,decorRoot=null;
+const importedDecor=new Map();
 const dressingMaterials={};
 function dressMaterial(key,color,roughness=.7,metalness=0){
  if(!dressingMaterials[key]){
@@ -381,100 +383,47 @@ function updateRoomVisibility(){
 }
 
 
-function addBooks(parent,seed){
- const colours=['#b8b29e','#6e796b','#d7c7ac','#a88772','#b9b5a7','#555a56'];
- let x=-.095;
- for(let i=0;i<4;i++){
-  const w=.025+((i+seed)%3)*.007,h=.18+((i*3+seed)%5)*.017,d=.135;
-  const cover=dressMaterial('book'+((i+seed)%6),colours[(i+seed)%6],.86),paper=dressMaterial('paper','#ece5d5',.94);
-  const book=new THREE.Group();parent.add(book);book.position.x=x;book.position.z=.015;
-  dressBox(book,w-.004,h-.012,d-.012,0,h/2,-.004,paper);
-  for(const edge of [-1,1])dressBox(book,.002,h,d,edge*(w-.002)/2,h/2,0,cover);
-  dressBox(book,w,h,.008,0,h/2,d/2-.004,cover);
-  const ink=dressMaterial('book-foil','#d2bf98',.6,.22);
-  for(const y of [h*.18,h*.80])dressBox(book,w*.65,.002,.001,0,y,d/2+.0006,ink);
-  if(i===3){book.rotation.z=-.10;book.position.y=w*.06;}
-  x+=w+.004;
- }
-}
-function addPot(parent,flower=false){
- const ceramic=dressMaterial(flower?'pot-ivory':'pot-clay',flower?'#e1d8c6':'#a5907b',.68);
- const h=.095,r=.056;
- const points=[new THREE.Vector2(0,0),new THREE.Vector2(r*.76,0),new THREE.Vector2(r*.9,.006),new THREE.Vector2(r,h-.008),new THREE.Vector2(r*.98,h),new THREE.Vector2(r*.88,h),new THREE.Vector2(r*.87,h-.012)];
- placeMesh(parent,new THREE.LatheGeometry(points,24),ceramic);
- placeMesh(parent,new THREE.CylinderGeometry(r*.86,r*.86,.006,20),dressMaterial('soil','#40392d',1),0,h-.012,0);
- const stem=dressMaterial('stems','#5b6547',.88),leaf=dressMaterial('leaf','#52634a',.62),young=dressMaterial('young-leaf','#728065',.7);
- const petals=dressMaterial('petal','#f2e8d1',.8),pollen=dressMaterial('pollen','#bb9c60',.84);
- for(let i=0;i<(flower?5:6);i++){
-  const a=i*2.39996,spread=.036+(i%2)*.012,top=h+.10+(i%3)*.032;
-  const end=new THREE.Vector3(Math.cos(a)*spread,top,Math.sin(a)*spread);
-  const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(0,h-.01,0),new THREE.Vector3(end.x*.2,h+.045,end.z*.2),end]);
-  placeMesh(parent,new THREE.TubeGeometry(curve,6,.0018,5,false),stem);
-  for(let j=0;j<3;j++){
-   const y=h+.035+j*.035,angle=a+(j%2?1.2:-.7),length=flower?.028:.048;
-   const m=placeMesh(parent,new THREE.SphereGeometry(1,12,7),j===2?young:leaf,Math.cos(angle)*.027,y,Math.sin(angle)*.027);
-   m.scale.set(length,.012,length*.38);m.rotation.set(.25,angle,-.38+(j%2)*.7);
-  }
-  if(flower){
-   for(let k=0;k<5;k++){
-    const angle=k*Math.PI*2/5,m=placeMesh(parent,new THREE.SphereGeometry(1,10,6),petals,end.x+Math.cos(angle)*.011,end.y,end.z+Math.sin(angle)*.011);
-    m.scale.set(.020,.0045,.010);m.rotation.y=-angle;
-   }
-   placeMesh(parent,new THREE.SphereGeometry(.005,10,6),pollen,end.x,end.y+.004,end.z);
-  }
- }
-}
-function addSculpture(parent,variant){
- const ivory=dressMaterial('sculpture','#dfd5c1',.62),bronze=dressMaterial('bronze','#928068',.46,.65),stone=dressMaterial('sculpture-base','#c4baa5',.84);
- if(variant%2===0){
-  dressBox(parent,.11,.022,.08,0,.011,0,stone);
-  const body=placeMesh(parent,new THREE.SphereGeometry(1,20,12),ivory,0,.083,0);body.scale.set(.045,.055,.025);
-  placeMesh(parent,new THREE.SphereGeometry(.026,20,12),ivory,0,.157,0);
-  const neck=placeMesh(parent,new THREE.CylinderGeometry(.013,.02,.031,16),ivory,0,.126,0);
-  neck.rotation.z=.08;
- }else{
-  dressBox(parent,.12,.018,.075,0,.009,0,stone);
-  const body=placeMesh(parent,new THREE.SphereGeometry(1,20,12),bronze,0,.081,0);body.scale.set(.052,.029,.025);body.rotation.z=.2;
-  placeMesh(parent,new THREE.SphereGeometry(.022,16,10),bronze,.039,.116,0);
-  const beak=placeMesh(parent,new THREE.ConeGeometry(.008,.027,12),bronze,.067,.116,0);beak.rotation.z=-Math.PI/2;
-  for(const x of [-.015,.015])placeMesh(parent,new THREE.CylinderGeometry(.002,.002,.04,6),bronze,x,.04,0);
-  const tail=placeMesh(parent,new THREE.ConeGeometry(.016,.052,12),bronze,-.057,.086,0);tail.rotation.z=Math.PI/2-.25;tail.scale.z=.4;
- }
-}
-function addVase(parent){
- const mat=dressMaterial('vase','#b6ad99',.67),points=[[0,0],[.037,0],[.048,.025],[.045,.08],[.021,.12],[.019,.15],[.016,.15],[.018,.12]];
- placeMesh(parent,new THREE.LatheGeometry(points.map(p=>new THREE.Vector2(...p)),24),mat);
- const bowlProfile=[[0,0],[.022,0],[.047,.032],[.044,.034],[.018,.006],[0,.006]];
- placeMesh(parent,new THREE.LatheGeometry(bowlProfile.map(p=>new THREE.Vector2(...p)),24),dressMaterial('bowl','#d9ccb5',.55),.103,0,0);
-}
-function batchDecor(root){
- root.updateMatrixWorld(true);const buckets=new Map(),originals=new Set();
- root.traverse(o=>{
-  if(!o.isMesh)return;
-  const g=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();g.applyMatrix4(o.matrixWorld);
-  if(!buckets.has(o.material))buckets.set(o.material,[]);buckets.get(o.material).push(g);originals.add(o.geometry);
- });
- root.clear();for(const g of originals)g.dispose();
- for(const [material,geometries] of buckets){
-  const merged=mergeGeometries(geometries,false);for(const g of geometries)g.dispose();
-  const mesh=new THREE.Mesh(merged,material);mesh.receiveShadow=true;mesh.name='Shelf decor / '+material.uuid;root.add(mesh);
- }
-}
 function buildShelfDecor(){
- clearDressing(decorRoot);decorRoot=new THREE.Group();decorRoot.name='Shelf decor / books, plants and sculptures';scene.add(decorRoot);
+ clearDressing(decorRoot);decorRoot=new THREE.Group();decorRoot.name='Imported decor / set035 and set039';scene.add(decorRoot);
  const w=state.width/1000,h=state.height/1000,d=state.depth/1000,t=state.thickness/1000;
  const bay=(w-(state.columns+1)*t)/state.columns,cell=(h-(state.rows+1)*t)/state.rows;
- const scale=Math.min(1.12,bay/.48,cell/.37,d/.23);
+ const layout=[['small-branches',.34],['standing-books',.30],null,['marble-bowl',.17],['tall-branches',.38],['stacked-books',.12],null,['sculptural-vase',.30],['diffuser',.25],['chalk-vase',.32],['dry-vase',.29],['leaf-vase',.37]];
  for(let r=0;r<state.rows;r++)for(let c=0;c<state.columns;c++){
-  const pattern=[0,2,1,3,7,4,2,5,3,1,0,6][(r*state.columns+c)%12];if(pattern===3||pattern===6)continue;
-  const group=new THREE.Group();decorRoot.add(group);
-  group.position.set(-w/2+t+c*(bay+t)+bay/2,t+r*(cell+t),-.018);group.scale.setScalar(scale);
-  if(pattern===0||pattern===5)addBooks(group,r+c);
-  else if(pattern===1||pattern===7)addPot(group,pattern===7);
-  else if(pattern===2)addSculpture(group,r+c);
-  else addVase(group);
+  const entry=layout[(r*state.columns+c)%layout.length];if(!entry||!importedDecor.has(entry[0]))continue;
+  const template=importedDecor.get(entry[0]),object=template.clone(true);
+  object.traverse(m=>{if(m.isMesh){m.geometry=m.geometry.clone();m.castShadow=true;m.receiveShadow=true;}});
+  const box=new THREE.Box3().setFromObject(object),size=box.getSize(new THREE.Vector3());
+  const scale=Math.min(entry[1],cell*.83/size.y,bay*.80/size.x,(d-.045)/size.z);
+  object.scale.setScalar(scale);object.position.set(-w/2+t+c*(bay+t)+bay/2,t+r*(cell+t),0);
+  object.userData.cell={row:r,column:c};decorRoot.add(object);
  }
- batchDecor(decorRoot);decorRoot.visible=state.decor;
+ decorRoot.visible=state.decor;
+}
+async function loadImportedDecor(load){
+ const base='./assets/imported/decor/';
+ const [library,metadata]=await Promise.all([new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(base+'library.glb'),fetch(base+'materials.json').then(r=>{if(!r.ok)throw Error('Decor material metadata unavailable');return r.json();})]);
+ const physical=new Map(),tasks=[];
+ library.scene.traverse(mesh=>{if(!mesh.isMesh)return;const originals=Array.isArray(mesh.material)?mesh.material:[mesh.material];
+  const converted=originals.map(original=>{
+   if(physical.has(original.name))return physical.get(original.name);
+   const [id,name]=original.name.split('::'),channels=metadata[id]?.[name]?.channels||{};
+   const file=(word)=>Object.entries(channels).find(([key])=>key.toLowerCase().includes(word))?.[1];
+   const leafy=/leaf|leaves/.test(name),glass=/glass|pefume/.test(name);
+   const mat=new THREE.MeshPhysicalMaterial({name:original.name,color:original.color,roughness:leafy?.72:glass?.22:.78,side:THREE.DoubleSide});
+   if(leafy)mat.color.set('#647449');if(name==='dry plant')mat.color.set('#b5a78c');
+   if(glass){mat.color.set(/dark/.test(name)?'#766348':'#d5c9b5');mat.transparent=true;mat.opacity=.65;mat.depthWrite=false;}
+   if(name==='perfume-wood')mat.color.set('#83664a');
+   if(name==='paper')mat.color.set('#e5decf');
+   enableRoomLighting(mat);physical.set(original.name,mat);
+   for(const [property,filename,color] of [['map',file('diffuse'),true],['alphaMap',file('opacity'),false],['normalMap',file('normal'),false]]){
+    if(!filename)continue;tasks.push(load(base+filename,color).then(texture=>{mat[property]=texture;if(property==='map')mat.color.set('#ffffff');if(property==='alphaMap'){mat.alphaTest=.42;mat.transparent=false;mat.opacity=1;mat.depthWrite=true;}if(property==='normalMap')mat.normalScale.set(.35,.35);mat.needsUpdate=true;}));
+   }
+   return mat;
+  });mesh.material=Array.isArray(mesh.material)?converted:converted[0];
+ });
+ await Promise.all(tasks);
+ library.scene.traverse(o=>{if(o.userData.sourceSet)importedDecor.set(o.name,o);});
+ if(!importedDecor.size)throw Error('Imported decor library is empty');
 }
 
 function initializeRenderer(){
@@ -699,6 +648,7 @@ async function loadMaterials(architecture){
   roughness:.34,envMapIntensity:1.15,clearcoat:.72,clearcoatRoughness:.12});
  architecture.floor.material.normalScale.set(.25,.25);
  architecture.floor.material.color.set('#ffffff');architecture.floor.material.needsUpdate=true;
+ await loadImportedDecor(load);
  createFloorReflection();
  try{
    const env=await new HDRLoader().loadAsync(assetURL('./assets/environment/kloofendal_48d_partly_cloudy_1k.hdr'));
