@@ -1,5 +1,1 @@
-Kiara 1 Dawn, Greg Zaal / Poly Haven
-Source: https://polyhaven.com/a/kiara_1_dawn
-License: CC0
-Original 1K Radiance HDR, MD5 fcefd321c51b468ead9d5e1a369a3735
-Used for scene environment lighting and reflections.
+Kloofendal 48d Partly Cloudy / Poly Haven. Source: https://polyhaven.com/a/kloofendal_48d_partly_cloudy. License: CC0. Original 1K Radiance HDR. MD5: ee096fe9e26ce29d8f110b5ba0579011. Used for environment lighting and reflections.
