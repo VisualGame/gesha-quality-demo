@@ -59,6 +59,7 @@
  <label class="check-row maps-check"><input type="checkbox" id="mapsEnabled" checked /><span>Включить PBR-карты · сравнение ДО / ПОСЛЕ</span></label>
  <div class="pbr-status">Активно: <strong id="mapStatus">Normal · Roughness · AO · HDRI</strong></div>
  <p class="pbr-help">Нажмите «Макро», чтобы приблизить дерево. Затем переключайте Normal / Bump / Без рельефа, двигайте «Шёлковистость лака» и сравнивайте карты вкл./выкл. Лучше всего изменения заметны под косым углом.</p>
+ <label class="check-row"><input type="checkbox" id="showRug" checked /><span>Ковёр перед стеллажом</span></label>
  <label class="check-row"><input type="checkbox" id="showDecor" checked /><span>Декор на полках</span></label>
  <label class="check-row"><input type="checkbox" id="showBack" /><span>Задняя панель стеллажа</span></label>
  <div class="render-details"><div><span>Геометрия</span><strong>Параметрическая</strong></div><div><span>Материал</span><strong id="matLabel">Дуб натуральный · PBR</strong></div><div><span>Освещение</span><strong>Оконные тени · отражённый свет</strong></div><div><span>Качество</span><strong id="qualityStatus">Рендер в реальном времени</strong></div></div>
@@ -71,6 +72,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
@@ -86,10 +88,10 @@ const loader = document.getElementById('loader');
 const errorBox = document.getElementById('errorBox');
 const smallDevice = matchMedia('(max-width: 800px)').matches;
 const lowMemory = (navigator.deviceMemory || 8) <= 3;
-const state = { width:1800, height:2000, depth:350, columns:3, rows:4, thickness:22, finish:'oak', back:false, decor:true, quality:false, relief:.35, gloss:.30, exposure:.96, reliefMode:'normal', mapsOn:true, aoEnabled:true, aoStrength:.24, shadowStrength:.65, sunPower:45, sunSoftness:70, daylightPower:100, rightPower:100, hdriPower:100, volumePower:18 };
+const state = { width:1800, height:2000, depth:350, columns:3, rows:4, thickness:22, finish:'oak', back:false, decor:true, rug:true, quality:false, relief:.35, gloss:.30, exposure:.96, reliefMode:'normal', mapsOn:true, aoEnabled:true, aoStrength:.24, shadowStrength:.65, sunPower:45, sunSoftness:70, daylightPower:100, rightPower:100, hdriPower:100, volumePower:18 };
 let renderer, scene, camera, orbit, shelf, materials = {}, tracer=null, tracerLoading=false, tracerDirty=true, cameraDirty=true, frameDirty=true, lastInteraction=performance.now();
 let modelMeshes=[], disposed=false, renderWidth=0, renderHeight=0, shadowKey=null, loadFinishMaterial=null;
-let floorReflection=null, volumePass=null;
+let floorReflection=null, volumePass=null, rugRoot=null;
 let composer=null, gtaoPass=null, aoPending=false, aoDirty=true, aoUnavailable=false, hemisphere=null, fillLight=null, windowFill=null, rightBounce=null, room=null, photoDenoiseQuad=null, photoPresentedSamples=-1, activeLightMode='realtime';
 const clock={ lastSampleTime:0 };
 function setStatus(s){status.textContent=s}
@@ -683,12 +685,15 @@ async function loadMaterials(architecture){
  const parquet={map:floorMap,normal:floorNormal,roughness:floorRough,ao:floorAO};
  // The scanned tile spans 2.4 metres; long boards run towards the rear wall.
  for(const t of Object.values(parquet))t.repeat.set(10,10);
- const wallpaper=makeWallpaperMaps();
- Object.assign(architecture.wall.material,{map:wallpaper.map,normalMap:wallpaper.normal,
-  roughnessMap:wallpaper.roughness,bumpMap:wallpaper.height,bumpScale:.0004,roughness:.96,envMapIntensity:.55,clearcoat:.015,clearcoatRoughness:.8,sheen:.12,sheenColor:new THREE.Color('#e9dfca'),sheenRoughness:.85});
- architecture.wall.material.normalScale.set(.48,.48);
- architecture.wall.material.color.set('#ffffff');architecture.wall.material.needsUpdate=true;
+ const [wallColor,wallNormal]=await Promise.all([load('./assets/imported/lounge/wall_color.webp',true),load('./assets/imported/lounge/wall_normal.webp')]);
+ for(const map of [wallColor,wallNormal])map.repeat.set(.25,.25);
+ Object.assign(architecture.wall.material,{map:wallColor,normalMap:wallNormal,roughnessMap:null,bumpMap:null,roughness:.96,envMapIntensity:.55,clearcoat:0,sheen:0});
+ architecture.wall.material.normalScale.set(.35,.35);architecture.wall.material.color.set('#ffffff');architecture.wall.material.needsUpdate=true;
  wallUV(architecture.wall.geometry,architecture.wall.position);
+ const [rugColor,rugNormal,importedRug]=await Promise.all([load('./assets/imported/lounge/rug_color.webp',true),load('./assets/imported/lounge/rug_normal.webp'),new GLTFLoader().loadAsync('./assets/imported/lounge/rug.glb')]);
+ rugRoot=importedRug.scene;rugRoot.name='Imported woven rug from lounge';
+ rugRoot.traverse(mesh=>{if(mesh.isMesh){mesh.material=new THREE.MeshPhysicalMaterial({color:'#ffffff',map:rugColor,normalMap:rugNormal,normalScale:new THREE.Vector2(.35,.35),roughness:1,sheen:.35,sheenRoughness:.95,sheenColor:new THREE.Color('#c5b9a3')});enableRoomLighting(mesh.material);mesh.receiveShadow=true;mesh.castShadow=true;}});
+ scene.add(rugRoot);updateRugPlacement();
  Object.assign(architecture.floor.material,{map:parquet.map,normalMap:parquet.normal,
   roughnessMap:parquet.roughness,aoMap:parquet.ao,aoMapIntensity:.38,
   roughness:.34,envMapIntensity:1.15,clearcoat:.72,clearcoatRoughness:.12});
@@ -707,6 +712,11 @@ async function loadMaterials(architecture){
    scene.environmentIntensity=.28;
  }
  applyFinishProperties();
+}
+function updateRugPlacement(){
+ if(!rugRoot)return;
+ const width=THREE.MathUtils.clamp(state.width/1000+.7,2.25,3.8),scale=width/4.562;
+ rugRoot.scale.setScalar(scale);rugRoot.position.set(0,.003,.45+3.449*scale/2);rugRoot.visible=state.rug;
 }
 function createFloorReflection(){
  const shader={uniforms:{color:{value:new THREE.Color('#ffffff')},tDiffuse:{value:null},textureMatrix:{value:null}},
@@ -943,7 +953,7 @@ function rebuild(fitCamera=false){
   const g=scaledBoxGeometry(w-2*t,h-2*t,.006,'vertical');
   const m=new THREE.Mesh(g,backMaterial);m.position.set(0,h/2,-d/2+.008);m.castShadow=true;m.receiveShadow=true;m.name='Задняя панель';shelf.add(m);modelMeshes.push(m);
  }
- buildRoomShell();buildShelfDecor();
+ buildRoomShell();buildShelfDecor();updateRugPlacement();
  fitShadowCamera();
  document.getElementById('matLabel').textContent=({oak:'Дуб натуральный',walnut:'Орех тёмный',ash:'Ясень светлый',graphite:'Графит матовый'})[state.finish]+' · PBR';
  invalidate(true);
@@ -1028,7 +1038,7 @@ function bindUI(){
   document.getElementById('lightCopyStatus').textContent='Исходные настройки света восстановлены.';
  });
  document.getElementById('copyLighting').addEventListener('click',async()=>{
-  const settings={preset:'SHELF daylight v1',mode:state.quality?'photo':'realtime',lights:Object.fromEntries(Object.keys(lightDefaults).map(k=>[k,state[k]])),exposure:state.exposure,shadowStrength:state.shadowStrength,aoStrength:state.aoStrength,aoEnabled:state.aoEnabled,object:{width:state.width,height:state.height,depth:state.depth,columns:state.columns,rows:state.rows,finish:state.finish,back:state.back,decor:state.decor}};
+  const settings={preset:'SHELF daylight v1',mode:state.quality?'photo':'realtime',lights:Object.fromEntries(Object.keys(lightDefaults).map(k=>[k,state[k]])),exposure:state.exposure,shadowStrength:state.shadowStrength,aoStrength:state.aoStrength,aoEnabled:state.aoEnabled,object:{width:state.width,height:state.height,depth:state.depth,columns:state.columns,rows:state.rows,finish:state.finish,back:state.back,decor:state.decor,rug:state.rug}};
   const text=JSON.stringify(settings,null,2),field=document.getElementById('lightSettingsText');field.value=text;field.hidden=false;
   try{await navigator.clipboard.writeText(text);document.getElementById('lightCopyStatus').textContent='Настройки скопированы. Вставьте их в сообщение мне.';}
   catch(e){field.focus();field.select();document.getElementById('lightCopyStatus').textContent='Скопируйте выделенный текст и пришлите его мне.';}
@@ -1089,6 +1099,7 @@ function bindUI(){
   updateLighting();updateRoomLighting();
   invalidate(false);
  });
+ document.getElementById('showRug').addEventListener('change',e=>{state.rug=e.target.checked;updateRugPlacement();invalidate(true)});
  document.getElementById('showDecor').addEventListener('change',e=>{state.decor=e.target.checked;if(decorRoot)decorRoot.visible=state.decor;invalidate(true)});
  document.getElementById('showBack').addEventListener('change',e=>{state.back=e.target.checked;rebuild(false)});
  document.getElementById('modeRealtime').addEventListener('click',()=>setQualityEnabled(false));
