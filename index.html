@@ -249,14 +249,14 @@ function updateRoomLighting(){
 
 function updateLighting(){
  const photo=activeLightMode==='photo';
- if(shadowKey)shadowKey.intensity=photo?38:30;
- if(roomShell)roomShell.traverse(o=>{if(o.name==='Window sun haze')o.visible=!photo;});
+ if(shadowKey)shadowKey.intensity=photo?24:18;
+
  if(shadowKey)shadowKey.shadow.intensity=THREE.MathUtils.clamp(state.shadowStrength,0,1);
  if(windowFill){windowFill.intensity=photo?4.8:3.3;windowFill.color.set('#f4f7ff');}
  if(fillLight)fillLight.intensity=photo?1.8:.9;
  if(rightBounce)rightBounce.intensity=photo?0:.18;
  if(hemisphere)hemisphere.intensity=photo?0:.035;
- if(scene)scene.environmentIntensity=photo?.20:.20;
+ if(scene)scene.environmentIntensity=photo?.32:.32;
 }
 
 let roomShell=null,decorRoot=null;
@@ -333,22 +333,6 @@ function buildRoomShell(){
  shadowKey.position.set(-half+.14,head-.22,.45);shadowKey.target.position.set(1.65,.02,2.55);
  shadowKey.angle=.33;shadowKey.penumbra=.45;shadowKey.decay=1;shadowKey.distance=22;
  shadowKey.target.updateMatrixWorld(true);
- // A few feathered light sheets approximate sparse dust scattering in realtime.
- // They add no accumulation pass and are excluded from the photo renderer.
- const hazeMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
-  uniforms:{tint:{value:new THREE.Color('#ffe0a8')}},
-  vertexShader:'varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-  fragmentShader:'varying vec2 vUv;uniform vec3 tint;void main(){float edge=pow(max(0.,sin(vUv.x*3.141593)),2.5);float ends=smoothstep(0.,.06,vUv.y)*(1.-smoothstep(.65,1.,vUv.y));gl_FragColor=vec4(tint,edge*ends*.10);}'
- });
- hazeMat.userData.roomHaze=true;
- for(let i=0;i<3;i++){
-  const start=new THREE.Vector3(-half+.15,head-.38-i*.55,.28+i*.65);
-  const end=start.clone().add(new THREE.Vector3(6.3,-3.2,2.15));
-  const direction=end.clone().sub(start),length=direction.length();
-  const beam=placeMesh(roomShell,new THREE.PlaneGeometry(.36+i*.12,length),hazeMat,...start.clone().add(end).multiplyScalar(.5).toArray());
-  beam.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction.normalize());
-  beam.name='Window sun haze';beam.renderOrder=4;beam.visible=activeLightMode!=='photo';
- }
  fillLight.position.set(half-.10,2.1,1.25);fillLight.width=1.45;fillLight.height=2.5;fillLight.lookAt(0,1.1,0);
 }
 
@@ -669,9 +653,10 @@ async function loadMaterials(architecture){
  // Conversion sources are no longer used by the renderer.
  for(const t of [floorMap,floorNormal,floorRough,floorAO,paleFloor])t.dispose();
  try{
-   const env=await new HDRLoader().loadAsync(assetURL('./assets/environment/studio_softboxes.hdr'));
+   const env=await new HDRLoader().loadAsync(assetURL('./assets/environment/kiara_1_dawn_1k.hdr'));
    env.mapping=THREE.EquirectangularReflectionMapping;
-   scene.environment=env;scene.environmentIntensity=.28;
+   scene.environment=env;scene.environmentIntensity=.32;
+   scene.environmentRotation.set(0,-Math.PI/2,0);
  }catch(e){
    console.warn('HDR file unavailable, falling back to a generated studio environment.',e);
    const {RoomEnvironment}=await import('three/addons/environments/RoomEnvironment.js');
