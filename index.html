@@ -249,14 +249,14 @@ function updateRoomLighting(){
 
 function updateLighting(){
  const photo=activeLightMode==='photo';
- if(shadowKey)shadowKey.intensity=photo?24:18;
+ if(shadowKey)shadowKey.intensity=photo?32:24;
 
  if(shadowKey)shadowKey.shadow.intensity=THREE.MathUtils.clamp(state.shadowStrength,0,1);
- if(windowFill){windowFill.intensity=photo?4.8:3.3;windowFill.color.set('#f4f7ff');}
+ if(windowFill){windowFill.intensity=photo?7.0:5.2;windowFill.color.set('#f4f7ff');}
  if(fillLight)fillLight.intensity=photo?1.8:.9;
  if(rightBounce)rightBounce.intensity=photo?0:.18;
  if(hemisphere)hemisphere.intensity=photo?0:.035;
- if(scene)scene.environmentIntensity=photo?.12:.12;
+ if(scene)scene.environmentIntensity=photo?.20:.20;
 }
 
 let roomShell=null,decorRoot=null;
@@ -655,7 +655,7 @@ async function loadMaterials(architecture){
  try{
    const env=await new HDRLoader().loadAsync(assetURL('./assets/environment/kloofendal_48d_partly_cloudy_1k.hdr'));
    env.mapping=THREE.EquirectangularReflectionMapping;
-   scene.environment=env;scene.environmentIntensity=.12;
+   scene.environment=env;scene.environmentIntensity=.20;
    scene.environmentRotation.set(0,-Math.PI/2,0);
  }catch(e){
    console.warn('HDR file unavailable, falling back to a generated studio environment.',e);
