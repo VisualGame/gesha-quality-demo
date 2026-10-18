@@ -42,7 +42,7 @@
  <div class="section-title"><span>03</span><b>Визуализация</b><span class="divider"></span></div>
  <div class="quality"><button id="modeRealtime" class="mode active" aria-pressed="true"><strong>Быстро</strong><small>Объёмный свет</small></button><button id="modePhoto" class="mode" aria-pressed="false"><strong>Фото</strong><small>Трассировка*</small></button></div>
  <div class="section-title"><span>04</span><b>Свет и объём</b><span class="divider"></span></div>
- <div class="sliders micro-controls"><div class="field"><label for="sunPower"><span>Яркость солнца</span><output id="sunPowerValue">45%</output></label><input id="sunPower" type="range" min="0" max="200" step="1" value="45" /></div><div class="field"><label for="sunSoftness"><span>Мягкость солнечного пятна</span><output id="sunSoftnessValue">70%</output></label><input id="sunSoftness" type="range" min="0" max="100" step="1" value="70" /></div><div class="field"><label for="daylightPower"><span>Дневной свет слева</span><output id="daylightPowerValue">100%</output></label><input id="daylightPower" type="range" min="0" max="250" step="1" value="100" /></div><div class="field"><label for="rightPower"><span>Мягкий свет справа</span><output id="rightPowerValue">100%</output></label><input id="rightPower" type="range" min="0" max="250" step="1" value="100" /></div><div class="field"><label for="hdriPower"><span>Свет окружения · HDRI</span><output id="hdriPowerValue">100%</output></label><input id="hdriPower" type="range" min="0" max="250" step="1" value="100" /></div></div><div class="quality"><button id="copyLighting" class="mode" type="button">Копировать настройки</button><button id="resetLighting" class="mode" type="button">Сбросить свет</button></div><p id="lightCopyStatus" class="pbr-help" aria-live="polite">Подберите свет и скопируйте настройки, чтобы прислать их мне. Экспозиция регулируется ниже.</p><textarea id="lightSettingsText" readonly aria-label="Настройки света для отправки" hidden style="width:100%;min-height:150px;box-sizing:border-box"></textarea>
+ <div class="sliders micro-controls"><div class="field"><label for="sunPower"><span>Яркость солнца</span><output id="sunPowerValue">45%</output></label><input id="sunPower" type="range" min="0" max="200" step="1" value="45" /></div><div class="field"><label for="sunSoftness"><span>Мягкость солнечного пятна</span><output id="sunSoftnessValue">70%</output></label><input id="sunSoftness" type="range" min="0" max="100" step="1" value="70" /></div><div class="field"><label for="daylightPower"><span>Дневной свет слева</span><output id="daylightPowerValue">100%</output></label><input id="daylightPower" type="range" min="0" max="250" step="1" value="100" /></div><div class="field"><label for="rightPower"><span>Мягкий свет справа</span><output id="rightPowerValue">100%</output></label><input id="rightPower" type="range" min="0" max="250" step="1" value="100" /></div><div class="field"><label for="hdriPower"><span>Свет окружения · HDRI</span><output id="hdriPowerValue">100%</output></label><input id="hdriPower" type="range" min="0" max="250" step="1" value="100" /></div></div><div class="field"><label for="volumePower"><span>Объёмный свет от окна</span><output id="volumePowerValue">18%</output></label><input id="volumePower" type="range" min="0" max="100" step="1" value="18" /></div><div class="quality"><button id="copyLighting" class="mode" type="button">Копировать настройки</button><button id="resetLighting" class="mode" type="button">Сбросить свет</button></div><p id="lightCopyStatus" class="pbr-help" aria-live="polite">Подберите свет и скопируйте настройки, чтобы прислать их мне. Экспозиция регулируется ниже.</p><textarea id="lightSettingsText" readonly aria-label="Настройки света для отправки" hidden style="width:100%;min-height:150px;box-sizing:border-box"></textarea>
  <label class="check-row maps-check"><input type="checkbox" id="aoEnabled" checked /><span>Контактное затенение GTAO (после остановки камеры)</span></label>
  <div class="sliders micro-controls">
   <div class="field"><label for="aoStrength"><span>Глубина контактных теней</span><output id="aoStrengthValue">24%</output></label><input id="aoStrength" type="range" min="0" max="100" step="1" value="24" /></div>
@@ -86,10 +86,10 @@ const loader = document.getElementById('loader');
 const errorBox = document.getElementById('errorBox');
 const smallDevice = matchMedia('(max-width: 800px)').matches;
 const lowMemory = (navigator.deviceMemory || 8) <= 3;
-const state = { width:1800, height:2000, depth:350, columns:3, rows:4, thickness:22, finish:'oak', back:false, decor:true, quality:false, relief:.35, gloss:.30, exposure:.96, reliefMode:'normal', mapsOn:true, aoEnabled:true, aoStrength:.24, shadowStrength:.65, sunPower:45, sunSoftness:70, daylightPower:100, rightPower:100, hdriPower:100 };
+const state = { width:1800, height:2000, depth:350, columns:3, rows:4, thickness:22, finish:'oak', back:false, decor:true, quality:false, relief:.35, gloss:.30, exposure:.96, reliefMode:'normal', mapsOn:true, aoEnabled:true, aoStrength:.24, shadowStrength:.65, sunPower:45, sunSoftness:70, daylightPower:100, rightPower:100, hdriPower:100, volumePower:18 };
 let renderer, scene, camera, orbit, shelf, materials = {}, tracer=null, tracerLoading=false, tracerDirty=true, cameraDirty=true, frameDirty=true, lastInteraction=performance.now();
 let modelMeshes=[], disposed=false, renderWidth=0, renderHeight=0, shadowKey=null, loadFinishMaterial=null;
-let floorReflection=null;
+let floorReflection=null, volumePass=null;
 let composer=null, gtaoPass=null, aoPending=false, aoDirty=true, aoUnavailable=false, hemisphere=null, fillLight=null, windowFill=null, rightBounce=null, room=null, photoDenoiseQuad=null, photoPresentedSamples=-1, activeLightMode='realtime';
 const clock={ lastSampleTime:0 };
 function setStatus(s){status.textContent=s}
@@ -294,7 +294,8 @@ function wallUV(geometry,centre){
 }
 function buildRoomShell(){
  clearDressing(roomShell);roomShell=new THREE.Group();roomShell.name='Room / side walls and window';scene.add(roomShell);
- const half=Math.max(3.9,state.width/2000+2.7),height=Math.max(4.8,state.height/1000+2.0),back=-.56,front=9.0;
+ const half=Math.max(3.9,state.width/2000+2.7),height=Math.max(4.8,state.height/1000+2.0),back=-state.depth/2000-.045,front=9.0;
+ room.wall.position.z=back;room.baseboard.position.z=back+.02;wallUV(room.wall.geometry,room.wall.position);
  const winBack=-.02,winFront=2.98,sill=.54,head=Math.min(height-.65,3.6);
  const wallMat=room.wall.material,trim=dressMaterial('trim','#f2ede3',.68),stone=dressMaterial('sill','#e5dfd3',.55);
  function segment(x,y,z,w,h,d,name){
@@ -335,7 +336,7 @@ function buildRoomShell(){
  // weaker virtual wall return inside the room, rather than beyond an opaque wall.
  windowFill.position.set(-half-.01,(sill+head)/2,z);windowFill.width=winW-.12;windowFill.height=winH-.12;windowFill.lookAt(0,windowFill.position.y,z);
  // Project the window aperture onto the rear wall, above and behind the shelf.
- shadowKey.position.set(-half+.14,head-.35,2.4);shadowKey.target.position.set(0,1.9,-.56);
+ shadowKey.position.set(-half+.14,head-.35,2.4);shadowKey.target.position.set(0,1.9,room.wall.position.z);
  shadowKey.angle=.38;shadowKey.penumbra=.08;shadowKey.decay=1;shadowKey.distance=22;
  // Project a window-shaped aperture through the light itself: surfaces receive
  // actual direct light, so shelf geometry occludes it through the shadow map.
@@ -372,7 +373,7 @@ function updateRoomVisibility(){
  const half=room.halfWidth;let changed=false;
  const visibility={left:camera.position.x>-half+.10,right:camera.position.x<half-.10,ceiling:camera.position.y<roomShell.userData.height-.10};
  roomShell.traverse(o=>{const side=o.userData.roomBoundary;if(side&&o.visible!==visibility[side]){o.visible=visibility[side];changed=true;}});
- const backVisible=camera.position.z>-.46;
+ const backVisible=camera.position.z>room.wall.position.z+.10;
  if(room.wall.visible!==backVisible){room.wall.visible=backVisible;changed=true;}
  if(changed){tracerDirty=true;aoDirty=true;frameDirty=true;}
 }
@@ -517,7 +518,7 @@ function initializeRenderer(){
  shelf=new THREE.Group();shelf.name='Parametric shelf';scene.add(shelf);
  const ro=new ResizeObserver(resizeCanvas);ro.observe(viewport);
  for(const m of [floor,wall,baseboard])enableRoomLighting(m.material);
- room={floor,wall};updateLighting();return room;
+ room={floor,wall,baseboard};updateLighting();return room;
 }
 function repeatTexture(texture){texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.anisotropy=renderer.capabilities.getMaxAnisotropy();return texture;}
 function deriveMonoTexture(sourceTexture,{invert=false,contrast=1.0,brightness=0.0}={}){
@@ -598,7 +599,7 @@ function makeParquetMaps(sources){
 // A seamless woven paper surface. Colour, height, normals and roughness are
 // derived from the same fibres; the grain responds to grazing window light.
 function makeWallpaperMaps(){
- const size=1024,field=new Float32Array(size*size),canvases={},contexts={},images={};
+ const size=smallDevice?1024:2048,field=new Float32Array(size*size),canvases={},contexts={},images={};
  const hash=(x,y)=>{const n=Math.sin(x*127.1+y*311.7)*43758.5453;return n-Math.floor(n)};
  const noise=(u,v,period)=>{
   const x=Math.floor(u),y=Math.floor(v),a=u-x,b=v-y,fx=a*a*(3-2*a),fy=b*b*(3-2*b);
@@ -684,8 +685,8 @@ async function loadMaterials(architecture){
  for(const t of Object.values(parquet))t.repeat.set(10,10);
  const wallpaper=makeWallpaperMaps();
  Object.assign(architecture.wall.material,{map:wallpaper.map,normalMap:wallpaper.normal,
-  roughnessMap:wallpaper.roughness,bumpMap:wallpaper.height,bumpScale:.00025,roughness:.96,envMapIntensity:.55,clearcoat:.015,clearcoatRoughness:.8,sheen:.12,sheenColor:new THREE.Color('#e9dfca'),sheenRoughness:.85});
- architecture.wall.material.normalScale.set(.32,.32);
+  roughnessMap:wallpaper.roughness,bumpMap:wallpaper.height,bumpScale:.0004,roughness:.96,envMapIntensity:.55,clearcoat:.015,clearcoatRoughness:.8,sheen:.12,sheenColor:new THREE.Color('#e9dfca'),sheenRoughness:.85});
+ architecture.wall.material.normalScale.set(.48,.48);
  architecture.wall.material.color.set('#ffffff');architecture.wall.material.needsUpdate=true;
  wallUV(architecture.wall.geometry,architecture.wall.position);
  Object.assign(architecture.floor.material,{map:parquet.map,normalMap:parquet.normal,
@@ -716,7 +717,7 @@ function createFloorReflection(){
  vec3 c=texture2D(tDiffuse,uv).rgb*.40;
  c+=(texture2D(tDiffuse,uv+vec2(d.x,0.)).rgb+texture2D(tDiffuse,uv-vec2(d.x,0.)).rgb+texture2D(tDiffuse,uv+vec2(0.,d.y)).rgb+texture2D(tDiffuse,uv-vec2(0.,d.y)).rgb)*.15;
  float grazing=1.-abs(normalize(cameraPosition-vWorld).y);
- float alpha=.16+.16*pow(grazing,3.);
+ float alpha=(.16+.16*pow(grazing,3.))*.60;
  gl_FragColor=vec4(c,alpha);
  #include <tonemapping_fragment>
  #include <colorspace_fragment>
@@ -798,6 +799,7 @@ async function initContactOcclusion(){
  }finally{aoPending=false;}
 }
 function renderPBR(){
+ if(state.volumePower>0){renderWindowVolume();return;}
  const idle=performance.now()-lastInteraction;
  if(state.aoEnabled && !aoUnavailable && !composer && !aoPending && idle>450)initContactOcclusion();
  // The composer includes GTAO only at rest. Panning/rotation uses raster immediately.
@@ -812,6 +814,48 @@ function renderPBR(){
   return;
  }
  renderer.render(scene,camera);
+}
+// Integrate light in air up to the visible scene depth; opaque surfaces stop
+// each camera ray, avoiding the old luminous sheets painted across objects.
+function renderWindowVolume(){
+ if(!volumePass){
+  const target=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,depthBuffer:true});
+  target.depthTexture=new THREE.DepthTexture(1,1,THREE.UnsignedIntType);
+  const uniforms={...roomLightUniforms,tColor:{value:target.texture},tDepth:{value:target.depthTexture},invProjection:{value:new THREE.Matrix4()},cameraWorld:{value:new THREE.Matrix4()},eye:{value:new THREE.Vector3()},lightDirection:{value:new THREE.Vector3()},windowBox:{value:new THREE.Vector4()},windowX:{value:0},density:{value:0}};
+  const material=new THREE.ShaderMaterial({depthTest:false,depthWrite:false,uniforms,
+   vertexShader:'varying vec2 uvScreen;void main(){uvScreen=uv;gl_Position=vec4(position.xy,0.,1.);}',
+   fragmentShader:shelfLightGLSL+`varying vec2 uvScreen;uniform sampler2D tColor,tDepth;uniform mat4 invProjection,cameraWorld;uniform vec3 eye,lightDirection;uniform vec4 windowBox;uniform float windowX,density;
+   void main(){
+    vec3 color=texture2D(tColor,uvScreen).rgb;float depth=texture2D(tDepth,uvScreen).x;
+    vec4 view=invProjection*vec4(uvScreen*2.-1.,depth*2.-1.,1.);view/=view.w;
+    vec3 endpoint=(cameraWorld*view).xyz;vec3 ray=normalize(endpoint-eye);float distanceToSurface=min(length(endpoint-eye),13.);
+    float stepSize=distanceToSurface/24.;float scattering=0.;
+    for(int i=0;i<24;i++){
+     vec3 p=eye+ray*((float(i)+.5)*stepSize);
+     float travel=(p.x-windowX)/max(lightDirection.x,.001);
+     vec3 aperture=p-lightDirection*travel;
+     float mask=smoothstep(windowBox.x,windowBox.x+.06,aperture.y)*(1.-smoothstep(windowBox.y-.06,windowBox.y,aperture.y))*smoothstep(windowBox.z,windowBox.z+.06,aperture.z)*(1.-smoothstep(windowBox.w-.06,windowBox.w,aperture.z));
+     float midZ=(windowBox.z+windowBox.w)*.5,midY=mix(windowBox.x,windowBox.y,.55);
+     mask*=smoothstep(.018,.045,abs(aperture.z-midZ))*smoothstep(.018,.045,abs(aperture.y-midY));
+     mask*=step(0.,travel)*step(0.,p.y)*step(p.y,4.8);
+     float visibility=0.;if(mask>.001)visibility=shelfWindowVisibility(p,vec3(0.),aperture,vec3(0.,.003,0.),vec3(0.,0.,.003));
+     scattering+=mask*visibility*stepSize;
+    }
+    float strength=1.-exp(-scattering*density);color=mix(color,vec3(1.05,.98,.85),strength);
+    gl_FragColor=vec4(color,1.);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+   }`});
+  const screen=new THREE.Scene(),quad=new THREE.Mesh(new THREE.PlaneGeometry(2,2),material);quad.frustumCulled=false;screen.add(quad);
+  volumePass={target,uniforms,screen,camera:new THREE.Camera()};
+ }
+ const pass=volumePass,size=renderer.getDrawingBufferSize(new THREE.Vector2());
+ if(pass.target.width!==size.x||pass.target.height!==size.y)pass.target.setSize(size.x,size.y);
+ pass.uniforms.invProjection.value.copy(camera.projectionMatrixInverse);pass.uniforms.cameraWorld.value.copy(camera.matrixWorld);pass.uniforms.eye.value.copy(camera.position);
+ pass.uniforms.lightDirection.value.subVectors(shadowKey.target.position,shadowKey.position).normalize();
+ const w=room.window;pass.uniforms.windowBox.value.set(w.sill,w.head,w.winBack,w.winFront);pass.uniforms.windowX.value=-room.halfWidth+.1;
+ pass.uniforms.density.value=state.volumePower/100*.045;
+ const previous=renderer.getRenderTarget();renderer.setRenderTarget(pass.target);renderer.clear();renderer.render(scene,camera);renderer.setRenderTarget(previous);renderer.render(pass.screen,pass.camera);
 }
 function scaledBoxGeometry(w,h,d,orientation){
  const rounding=Math.min(.0026,w*.14,h*.14,d*.14);
@@ -853,7 +897,7 @@ function board(w,h,d,x,y,z,orientation,tag){
 // Keep the window fixed as dimensions change; only aim at the shelf centre.
 function fitShadowCamera(){
  if(!shadowKey||!shelf||!shelf.children.length)return;
- shadowKey.target.position.set(0,1.9,-.56);
+ shadowKey.target.position.set(0,1.9,room.wall.position.z);
  shadowKey.target.updateMatrixWorld(true);
  shadowKey.shadow.camera.near=.4;
  shadowKey.shadow.camera.far=18;
@@ -973,7 +1017,7 @@ async function initPathTracing(){
  }finally{tracerLoading=false;lastInteraction=performance.now()}
 }
 function bindUI(){
- const lightDefaults={sunPower:45,sunSoftness:70,daylightPower:100,rightPower:100,hdriPower:100};
+ const lightDefaults={sunPower:45,sunSoftness:70,daylightPower:100,rightPower:100,hdriPower:100, volumePower:18};
  for(const key of Object.keys(lightDefaults))document.getElementById(key).addEventListener('input',e=>{
   state[key]=Number(e.target.value);document.getElementById(key+'Value').textContent=state[key]+'%';
   updateLighting();invalidate(true);
