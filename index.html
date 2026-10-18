@@ -288,8 +288,8 @@ function wallUV(geometry,centre){
 }
 function buildRoomShell(){
  clearDressing(roomShell);roomShell=new THREE.Group();roomShell.name='Room / side walls and window';scene.add(roomShell);
- const half=state.width/2000+.65,height=Math.max(3.05,state.height/1000+.4),back=-.56,front=6.0;
- const winBack=-.02,winFront=1.98,sill=.54,head=Math.min(height-.24,2.68);
+ const half=Math.max(3.9,state.width/2000+2.7),height=Math.max(4.8,state.height/1000+2.0),back=-.56,front=9.0;
+ const winBack=-.02,winFront=2.98,sill=.54,head=Math.min(height-.65,3.6);
  const wallMat=room.wall.material,trim=dressMaterial('trim','#f2ede3',.68),stone=dressMaterial('sill','#e5dfd3',.55);
  function segment(x,y,z,w,h,d,name){
   const g=wallUV(new THREE.BoxGeometry(w,h,d),new THREE.Vector3(x,y,z));
