@@ -71,6 +71,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { Reflector } from 'three/addons/objects/Reflector.js';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 
@@ -88,6 +89,7 @@ const lowMemory = (navigator.deviceMemory || 8) <= 3;
 const state = { width:1800, height:2000, depth:350, columns:3, rows:4, thickness:22, finish:'oak', back:false, decor:true, quality:false, relief:.35, gloss:.30, exposure:.96, reliefMode:'normal', mapsOn:true, aoEnabled:true, aoStrength:.24, shadowStrength:.65, sunPower:45, sunSoftness:70, daylightPower:100, rightPower:100, hdriPower:100 };
 let renderer, scene, camera, orbit, shelf, materials = {}, tracer=null, tracerLoading=false, tracerDirty=true, cameraDirty=true, frameDirty=true, lastInteraction=performance.now();
 let modelMeshes=[], disposed=false, renderWidth=0, renderHeight=0, shadowKey=null, loadFinishMaterial=null;
+let floorReflection=null;
 let composer=null, gtaoPass=null, aoPending=false, aoDirty=true, aoUnavailable=false, hemisphere=null, fillLight=null, windowFill=null, rightBounce=null, room=null, photoDenoiseQuad=null, photoPresentedSamples=-1, activeLightMode='realtime';
 const clock={ lastSampleTime:0 };
 function setStatus(s){status.textContent=s}
@@ -209,6 +211,8 @@ function enableRoomLighting(material){
    vShelfWorldNormal=normalize(mat3(modelMatrix)*objectNormal);
   `);
   shader.fragmentShader=shelfLightGLSL+shader.fragmentShader;
+  if(material.userData.finish)shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',THREE.ShaderChunk.map_fragment.replace('texture2D( map, vMapUv )','texture2D( map, vMapUv, -0.35 )'));
+
   let lighting=THREE.ShaderChunk.lights_fragment_begin;
   const rectCall='RE_Direct_RectArea( rectAreaLight, geometryPosition, geometryNormal, geometryViewDir, geometryClearcoatNormal, material, reflectedLight );';
   if(!lighting.includes(rectCall))throw new Error('Incompatible room-lighting shader');
@@ -670,15 +674,14 @@ async function loadMaterials(architecture){
  const graphite=new THREE.MeshPhysicalMaterial({color:'#343638',metalness:0,roughness:.75,clearcoat:.05,clearcoatRoughness:.78,envMapIntensity:.85});
  enableRoomLighting(graphite);
  materials.graphite={vertical:graphite,horizontal:graphite,edgeV:graphite,edgeH:graphite};
+ const floorLevel=(smallDevice||lowMemory)?'2k':'4k';
  const [floorMap,floorNormal,floorRough,floorAO]=await Promise.all([
-  load('./assets/materials/oak_basecolor_horizontal.webp',true),load('./assets/materials/oak_normal_horizontal.webp'),
-  load('./assets/materials/oak_roughness_horizontal.webp'),load('./assets/materials/oak_ao_horizontal.webp')
+  load(`./assets/materials/floor/color_${floorLevel}.webp`,true),load(`./assets/materials/floor/normal_${floorLevel}.webp`),
+  load('./assets/materials/floor/roughness_2k.webp'),load('./assets/materials/floor/ao_2k.webp')
  ]);
- const paleFloor=paleOakTexture(floorMap);
- const parquet=makeParquetMaps({map:paleFloor,normal:floorNormal,roughness:floorRough,ao:floorAO});
- for(const t of Object.values(parquet)){
-  t.repeat.set(5,5);t.center.set(.5,.5);t.rotation=Math.PI/2;
- }
+ const parquet={map:floorMap,normal:floorNormal,roughness:floorRough,ao:floorAO};
+ // The scanned tile spans 2.4 metres; long boards run towards the rear wall.
+ for(const t of Object.values(parquet))t.repeat.set(10,10);
  const wallpaper=makeWallpaperMaps();
  Object.assign(architecture.wall.material,{map:wallpaper.map,normalMap:wallpaper.normal,
   roughnessMap:wallpaper.roughness,bumpMap:wallpaper.height,bumpScale:.00025,roughness:.96,envMapIntensity:.55,clearcoat:.015,clearcoatRoughness:.8,sheen:.12,sheenColor:new THREE.Color('#e9dfca'),sheenRoughness:.85});
@@ -687,11 +690,10 @@ async function loadMaterials(architecture){
  wallUV(architecture.wall.geometry,architecture.wall.position);
  Object.assign(architecture.floor.material,{map:parquet.map,normalMap:parquet.normal,
   roughnessMap:parquet.roughness,aoMap:parquet.ao,aoMapIntensity:.38,
-  roughness:.45,envMapIntensity:1.05,clearcoat:.5,clearcoatRoughness:.18});
- architecture.floor.material.normalScale.set(.38,.38);
+  roughness:.34,envMapIntensity:1.15,clearcoat:.72,clearcoatRoughness:.12});
+ architecture.floor.material.normalScale.set(.25,.25);
  architecture.floor.material.color.set('#ffffff');architecture.floor.material.needsUpdate=true;
- // Conversion sources are no longer used by the renderer.
- for(const t of [floorMap,floorNormal,floorRough,floorAO,paleFloor])t.dispose();
+ createFloorReflection();
  try{
    const env=await new HDRLoader().loadAsync(assetURL('./assets/environment/kloofendal_48d_partly_cloudy_1k.hdr'));
    env.mapping=THREE.EquirectangularReflectionMapping;
@@ -704,6 +706,25 @@ async function loadMaterials(architecture){
    scene.environmentIntensity=.28;
  }
  applyFinishProperties();
+}
+function createFloorReflection(){
+ const shader={uniforms:{color:{value:new THREE.Color('#ffffff')},tDiffuse:{value:null},textureMatrix:{value:null}},
+ vertexShader:`uniform mat4 textureMatrix;varying vec4 vReflectionUv;varying vec3 vWorld;
+ void main(){vReflectionUv=textureMatrix*vec4(position,1.);vWorld=(modelMatrix*vec4(position,1.)).xyz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+ fragmentShader:`uniform sampler2D tDiffuse;varying vec4 vReflectionUv;varying vec3 vWorld;
+ void main(){vec2 uv=vReflectionUv.xy/vReflectionUv.w;vec2 d=vec2(.0016,.0016);
+ vec3 c=texture2D(tDiffuse,uv).rgb*.40;
+ c+=(texture2D(tDiffuse,uv+vec2(d.x,0.)).rgb+texture2D(tDiffuse,uv-vec2(d.x,0.)).rgb+texture2D(tDiffuse,uv+vec2(0.,d.y)).rgb+texture2D(tDiffuse,uv-vec2(0.,d.y)).rgb)*.15;
+ float grazing=1.-abs(normalize(cameraPosition-vWorld).y);
+ float alpha=.16+.16*pow(grazing,3.);
+ gl_FragColor=vec4(c,alpha);
+ #include <tonemapping_fragment>
+ #include <colorspace_fragment>
+ }`};
+ floorReflection=new Reflector(new THREE.PlaneGeometry(24,24),{shader,textureWidth:smallDevice?512:1024,textureHeight:smallDevice?512:1024,clipBias:.002,multisample:0});
+ floorReflection.name='Soft lacquer floor reflection';floorReflection.rotation.x=-Math.PI/2;floorReflection.position.y=.0015;
+ floorReflection.material.transparent=true;floorReflection.material.depthWrite=false;floorReflection.renderOrder=1;
+ floorReflection.visible=activeLightMode!=='photo';scene.add(floorReflection);
 }
 function applyFinishProperties(){
  if(!renderer)return;
@@ -842,6 +863,7 @@ function fitShadowCamera(){
 // Switch between stable real-time lighting and physical window sources for Photo.
 function usePhotoLighting(enabled){
  const mode=enabled?'photo':'realtime';
+ if(floorReflection)floorReflection.visible=!enabled;
  if(activeLightMode===mode)return;
  activeLightMode=mode;
  updateLighting();
