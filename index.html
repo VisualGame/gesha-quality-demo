@@ -42,24 +42,24 @@
  <div class="section-title"><span>03</span><b>Визуализация</b><span class="divider"></span></div>
  <div class="quality"><button id="modeRealtime" class="mode active" aria-pressed="true"><strong>Быстро</strong><small>Объёмный свет</small></button><button id="modePhoto" class="mode" aria-pressed="false"><strong>Фото</strong><small>Трассировка*</small></button></div>
  <div class="section-title"><span>04</span><b>Свет и объём</b><span class="divider"></span></div>
- <div class="sliders micro-controls"><div class="field"><label for="sunPower"><span>Яркость солнца</span><output id="sunPowerValue">45%</output></label><input id="sunPower" type="range" min="0" max="200" step="1" value="45" /></div><div class="field"><label for="sunSoftness"><span>Мягкость солнечного пятна</span><output id="sunSoftnessValue">70%</output></label><input id="sunSoftness" type="range" min="0" max="100" step="1" value="70" /></div><div class="field"><label for="daylightPower"><span>Дневной свет слева</span><output id="daylightPowerValue">100%</output></label><input id="daylightPower" type="range" min="0" max="250" step="1" value="100" /></div><div class="field"><label for="rightPower"><span>Мягкий свет справа</span><output id="rightPowerValue">100%</output></label><input id="rightPower" type="range" min="0" max="250" step="1" value="100" /></div><div class="field"><label for="hdriPower"><span>Свет окружения · HDRI</span><output id="hdriPowerValue">100%</output></label><input id="hdriPower" type="range" min="0" max="250" step="1" value="100" /></div></div><div class="field"><label for="volumePower"><span>Объёмный свет от окна</span><output id="volumePowerValue">18%</output></label><input id="volumePower" type="range" min="0" max="100" step="1" value="18" /></div><div class="quality"><button id="copyLighting" class="mode" type="button">Копировать настройки</button><button id="resetLighting" class="mode" type="button">Сбросить свет</button></div><p id="lightCopyStatus" class="pbr-help" aria-live="polite">Подберите свет и скопируйте настройки, чтобы прислать их мне. Экспозиция регулируется ниже.</p><textarea id="lightSettingsText" readonly aria-label="Настройки света для отправки" hidden style="width:100%;min-height:150px;box-sizing:border-box"></textarea>
+ <div class="sliders micro-controls"><div class="field"><label for="sunPower"><span>Яркость солнца</span><output id="sunPowerValue">21%</output></label><input id="sunPower" type="range" min="0" max="200" step="1" value="21" /></div><div class="field"><label for="sunSoftness"><span>Мягкость солнечного пятна</span><output id="sunSoftnessValue">34%</output></label><input id="sunSoftness" type="range" min="0" max="100" step="1" value="34" /></div><div class="field"><label for="daylightPower"><span>Дневной свет слева</span><output id="daylightPowerValue">91%</output></label><input id="daylightPower" type="range" min="0" max="250" step="1" value="91" /></div><div class="field"><label for="rightPower"><span>Мягкий свет справа</span><output id="rightPowerValue">53%</output></label><input id="rightPower" type="range" min="0" max="250" step="1" value="53" /></div><div class="field"><label for="hdriPower"><span>Свет окружения · HDRI</span><output id="hdriPowerValue">125%</output></label><input id="hdriPower" type="range" min="0" max="250" step="1" value="125" /></div></div><div class="field"><label for="volumePower"><span>Объёмный свет от окна</span><output id="volumePowerValue">38%</output></label><input id="volumePower" type="range" min="0" max="100" step="1" value="38" /></div><div class="quality"><button id="copyLighting" class="mode" type="button">Копировать настройки</button><button id="resetLighting" class="mode" type="button">Сбросить свет</button></div><p id="lightCopyStatus" class="pbr-help" aria-live="polite">Подберите свет и скопируйте настройки, чтобы прислать их мне. Экспозиция регулируется ниже.</p><textarea id="lightSettingsText" readonly aria-label="Настройки света для отправки" hidden style="width:100%;min-height:150px;box-sizing:border-box"></textarea>
  <label class="check-row maps-check"><input type="checkbox" id="aoEnabled" checked /><span>Контактное затенение GTAO (после остановки камеры)</span></label>
  <div class="sliders micro-controls">
-  <div class="field"><label for="aoStrength"><span>Глубина контактных теней</span><output id="aoStrengthValue">24%</output></label><input id="aoStrength" type="range" min="0" max="100" step="1" value="24" /></div>
-  <div class="field"><label for="shadowStrength"><span>Плотность оконной тени</span><output id="shadowStrengthValue">65%</output></label><input id="shadowStrength" type="range" min="20" max="100" step="5" value="65" /></div>
+  <div class="field"><label for="aoStrength"><span>Глубина контактных теней</span><output id="aoStrengthValue">100%</output></label><input id="aoStrength" type="range" min="0" max="100" step="1" value="100" /></div>
+  <div class="field"><label for="shadowStrength"><span>Плотность оконной тени</span><output id="shadowStrengthValue">90%</output></label><input id="shadowStrength" type="range" min="20" max="100" step="5" value="90" /></div>
  </div>
  <p class="pbr-help" id="aoStatus">Оконный свет и мягкие тени работают сразу, в том числе при вращении. После остановки камеры добавляется тонкое контактное затенение GTAO; оно доступно не на всех GPU.</p>
  <div class="section-title"><span>05</span><b>Фактура материала</b><span class="divider"></span></div>
  <div class="sliders micro-controls">
   <div class="field"><label for="relief"><span>Сила микрорельефа · Normal / Bump</span><output id="reliefValue">35%</output></label><input id="relief" type="range" min="0" max="200" step="5" value="35" /></div>
   <div class="field"><label for="gloss"><span>Шёлковистость лака</span><output id="glossValue">30%</output></label><input id="gloss" type="range" min="0" max="100" step="5" value="30" /></div>
-  <div class="field"><label for="exposure"><span>Экспозиция</span><output id="exposureValue">96%</output></label><input id="exposure" type="range" min="60" max="125" step="1" value="96" /></div>
+  <div class="field"><label for="exposure"><span>Экспозиция</span><output id="exposureValue">98%</output></label><input id="exposure" type="range" min="60" max="125" step="1" value="98" /></div>
  </div>
  <div class="pbr-tools"><label for="reliefType">Рельеф древесины</label><select id="reliefType"><option value="normal" selected>Normal map</option><option value="bump">Bump / Height</option><option value="off">Без рельефа (тест)</option></select></div>
  <label class="check-row maps-check"><input type="checkbox" id="mapsEnabled" checked /><span>Включить PBR-карты · сравнение ДО / ПОСЛЕ</span></label>
  <div class="pbr-status">Активно: <strong id="mapStatus">Normal · Roughness · AO · HDRI</strong></div>
  <p class="pbr-help">Нажмите «Макро», чтобы приблизить дерево. Затем переключайте Normal / Bump / Без рельефа, двигайте «Шёлковистость лака» и сравнивайте карты вкл./выкл. Лучше всего изменения заметны под косым углом.</p>
- <label class="check-row"><input type="checkbox" id="showRug" checked /><span>Ковёр перед стеллажом</span></label>
+ <label class="check-row"><input type="checkbox" id="showRug" /><span>Ковёр перед стеллажом</span></label>
  <label class="check-row"><input type="checkbox" id="showDecor" checked /><span>Декор на полках</span></label>
  <label class="check-row"><input type="checkbox" id="showBack" /><span>Задняя панель стеллажа</span></label>
  <div class="render-details"><div><span>Геометрия</span><strong>Параметрическая</strong></div><div><span>Материал</span><strong id="matLabel">Дуб натуральный · PBR</strong></div><div><span>Освещение</span><strong>Оконные тени · отражённый свет</strong></div><div><span>Качество</span><strong id="qualityStatus">Рендер в реальном времени</strong></div></div>
@@ -89,7 +89,7 @@ const loader = document.getElementById('loader');
 const errorBox = document.getElementById('errorBox');
 const smallDevice = matchMedia('(max-width: 800px)').matches;
 const lowMemory = (navigator.deviceMemory || 8) <= 3;
-const state = { width:1800, height:2000, depth:350, columns:3, rows:4, thickness:22, finish:'oak', back:false, decor:true, rug:true, quality:false, relief:.35, gloss:.30, exposure:.96, reliefMode:'normal', mapsOn:true, aoEnabled:true, aoStrength:.24, shadowStrength:.65, sunPower:45, sunSoftness:70, daylightPower:100, rightPower:100, hdriPower:100, volumePower:18 };
+const state = { width:1800, height:2000, depth:350, columns:3, rows:4, thickness:22, finish:'oak', back:false, decor:true, rug:false, quality:false, relief:.35, gloss:.30, exposure:0.98, reliefMode:'normal', mapsOn:true, aoEnabled:true, aoStrength:1, shadowStrength:0.9, sunPower:21, sunSoftness:34, daylightPower:91, rightPower:53, hdriPower:125, volumePower:38};
 let renderer, scene, camera, orbit, shelf, materials = {}, tracer=null, tracerLoading=false, tracerDirty=true, cameraDirty=true, frameDirty=true, lastInteraction=performance.now();
 let modelMeshes=[], disposed=false, renderWidth=0, renderHeight=0, shadowKey=null, loadFinishMaterial=null;
 let floorReflection=null, volumePass=null, rugRoot=null;
@@ -634,10 +634,11 @@ async function loadMaterials(architecture){
  const parquet={map:floorMap,normal:floorNormal,roughness:floorRough,ao:floorAO};
  // The scanned tile spans 2.4 metres; long boards run towards the rear wall.
  for(const t of Object.values(parquet))t.repeat.set(10,10);
- const [wallColor,wallNormal]=await Promise.all([load('./assets/imported/lounge/wall_color.webp',true),load('./assets/imported/lounge/wall_normal.webp')]);
+ const [wallColorSource,wallNormal]=await Promise.all([load('./assets/imported/lounge/wall_color.webp',true),load('./assets/imported/lounge/wall_normal.webp')]);
+ const wallColor=neutralWallTexture(wallColorSource);
  for(const map of [wallColor,wallNormal])map.repeat.set(.25,.25);
  Object.assign(architecture.wall.material,{map:wallColor,normalMap:wallNormal,roughnessMap:null,bumpMap:null,roughness:.96,envMapIntensity:.55,clearcoat:0,sheen:0});
- architecture.wall.material.normalScale.set(.35,.35);architecture.wall.material.color.set('#ffffff');architecture.wall.material.needsUpdate=true;
+ architecture.wall.material.normalScale.set(.85,.85);architecture.wall.material.color.set('#ffffff');architecture.wall.material.needsUpdate=true;
  wallUV(architecture.wall.geometry,architecture.wall.position);
  const [rugColor,rugNormal,importedRug]=await Promise.all([load('./assets/imported/lounge/rug_color.webp',true),load('./assets/imported/lounge/rug_normal.webp'),new GLTFLoader().loadAsync('./assets/imported/lounge/rug.glb')]);
  rugRoot=importedRug.scene;rugRoot.name='Imported woven rug from lounge';
@@ -662,6 +663,13 @@ async function loadMaterials(architecture){
    scene.environmentIntensity=.28;
  }
  applyFinishProperties();
+}
+function neutralWallTexture(source){
+ const canvas=document.createElement('canvas'),image=source.image;canvas.width=image.width;canvas.height=image.height;
+ const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(image,0,0);
+ const pixels=ctx.getImageData(0,0,canvas.width,canvas.height),d=pixels.data;
+ for(let i=0;i<d.length;i+=4){const y=.2126*d[i]+.7152*d[i+1]+.0722*d[i+2];d[i]=y+1;d[i+1]=y;d[i+2]=y-4;}
+ ctx.putImageData(pixels,0,0);const texture=repeatTexture(new THREE.CanvasTexture(canvas));texture.colorSpace=THREE.SRGBColorSpace;return texture;
 }
 function updateRugPlacement(){
  if(!rugRoot)return;
@@ -977,7 +985,7 @@ async function initPathTracing(){
  }finally{tracerLoading=false;lastInteraction=performance.now()}
 }
 function bindUI(){
- const lightDefaults={sunPower:45,sunSoftness:70,daylightPower:100,rightPower:100,hdriPower:100, volumePower:18};
+ const lightDefaults={sunPower:21,sunSoftness:34,daylightPower:91,rightPower:53,hdriPower:125,volumePower:38};
  for(const key of Object.keys(lightDefaults))document.getElementById(key).addEventListener('input',e=>{
   state[key]=Number(e.target.value);document.getElementById(key+'Value').textContent=state[key]+'%';
   updateLighting();invalidate(true);
